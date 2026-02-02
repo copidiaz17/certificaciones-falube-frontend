@@ -47,6 +47,7 @@
     </div>
 
     <div class="panel-avance">
+      <!-- CURVA -->
       <div class="panel panel-curva">
         <h3>Curva de Avance</h3>
         <div class="chart-wrap">
@@ -54,41 +55,51 @@
         </div>
       </div>
 
+      <!-- RESUMEN -->
       <div class="panel panel-resumen" v-if="resumenCurva.length > 0">
         <h3>Resumen de Curva</h3>
 
-        <table class="tabla-resumen">
-          <thead>
-            <tr>
-              <th>Período</th>
-              <th class="th-plan">% Plan (período)</th>
-              <th class="th-plan th-sep-right">% Plan (acum.)</th>
-              <th class="th-cert">% Cert (período)</th>
-              <th class="th-cert th-sep-right">% Cert (acum.)</th>
-              <th class="th-real">% Real (período)</th>
-              <th class="th-real th-sep-right">% Real (acum.)</th>
-              <th>Desvío acum. (Real - Plan)</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(r, idx) in resumenCurva" :key="idx">
-              <td class="col-periodo">{{ r.periodo }}</td>
-              <td class="td-plan">{{ formatPercent(r.planPer) }}</td>
-              <td class="td-plan td-sep-right">{{ formatPercent(r.planAc) }}</td>
-              <td class="td-cert">{{ formatPercent(r.certPer) }}</td>
-              <td class="td-cert td-sep-right">{{ formatPercent(r.certAc) }}</td>
-              <td class="td-real">{{ formatPercent(r.avPer) }}</td>
-              <td class="td-real td-sep-right">{{ formatPercent(r.avAc) }}</td>
-              <td :class="r.desvio >= 0 ? 'pos' : 'neg'">
-                {{ formatPercent(r.desvio) }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="table-wrapper">
+          <table class="tabla-resumen">
+            <thead>
+              <tr>
+                <th>Período</th>
+                <th class="th-plan">% Plan (período)</th>
+                <th class="th-plan th-sep-right">% Plan (acum.)</th>
+                <th class="th-cert">% Cert (período)</th>
+                <th class="th-cert th-sep-right">% Cert (acum.)</th>
+                <th class="th-real">% Real (período)</th>
+                <th class="th-real th-sep-right">% Real (acum.)</th>
+                <th>Desvío acum. (Real - Plan)</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr v-for="(r, idx) in resumenCurva" :key="idx">
+                <td class="col-periodo">{{ r.periodo }}</td>
+
+                <td class="td-plan">{{ formatPercent(r.planPer) }}</td>
+                <td class="td-plan td-sep-right">{{ formatPercent(r.planAc) }}</td>
+
+                <td class="td-cert">{{ formatPercent(r.certPer) }}</td>
+                <td class="td-cert td-sep-right">{{ formatPercent(r.certAc) }}</td>
+
+                <td class="td-real">{{ formatPercent(r.avPer) }}</td>
+                <td class="td-real td-sep-right">{{ formatPercent(r.avAc) }}</td>
+
+                <td :class="r.desvio >= 0 ? 'pos' : 'neg'">
+                  {{ formatPercent(r.desvio) }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
+      <!-- AVANCE POR ÍTEM CERTIFICADO -->
       <div class="panel panel-items">
         <h3>Avance certificado por Ítem (acumulado)</h3>
+
         <div
           v-for="item in avanceItems"
           :key="item.pliego_item_id"
@@ -98,6 +109,7 @@
             <span>{{ item.descripcion }}</span>
             <strong>{{ formatPercent(item.avance_acumulado) }}</strong>
           </div>
+
           <div class="barra">
             <div
               class="barra-progreso"
@@ -105,43 +117,49 @@
             ></div>
           </div>
         </div>
+
         <p v-if="avanceItems.length === 0" class="text-muted">
           No hay avances registrados
         </p>
       </div>
 
+      <!-- HISTORIAL CERTIFICACIONES -->
       <div class="panel panel-certificaciones">
         <h3>Historial de Certificaciones</h3>
-        <table
-          v-if="certsHistorial.length > 0"
-          class="tabla-certificaciones"
-        >
-          <thead>
-            <tr>
-              <th>N° Cert.</th>
-              <th>Período</th>
-              <th>Fecha Emisión</th>
-              <th>Avance Cert.</th>
-              <th>Avance Acum.</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="cert in certsHistorial" :key="cert.id">
-              <td>{{ cert.numero_certificado }}</td>
-              <td>{{ formatPeriodo(cert) }}</td>
-              <td>{{ formatDate(cert.fecha_certificacion) }}</td>
-              <td>{{ formatPercent(cert.avance_mensual) }}</td>
-              <td>{{ formatPercent(cert.avance_acumulado) }}</td>
-              <td>
-                <button class="btn-detalle" @click="verDetalleCert(cert.id)">
-                  Ver detalle
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <p v-else class="text-muted">No hay certificaciones registradas</p>
+
+        <div class="table-wrapper" v-if="certsHistorial.length > 0">
+          <table class="tabla-certificaciones">
+            <thead>
+              <tr>
+                <th>N° Cert.</th>
+                <th>Período</th>
+                <th>Fecha Emisión</th>
+                <th>Avance Cert.</th>
+                <th>Avance Acum.</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr v-for="cert in certsHistorial" :key="cert.id">
+                <td>{{ cert.numero_certificado }}</td>
+                <td>{{ formatPeriodo(cert) }}</td>
+                <td>{{ formatDate(cert.fecha_certificacion) }}</td>
+                <td>{{ formatPercent(cert.avance_mensual) }}</td>
+                <td>{{ formatPercent(cert.avance_acumulado) }}</td>
+                <td>
+                  <button class="btn-detalle" @click="verDetalleCert(cert.id)">
+                    Ver detalle
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p v-else class="text-muted">
+          No hay certificaciones registradas
+        </p>
       </div>
     </div>
   </div>
@@ -155,11 +173,13 @@ import Chart from "chart.js/auto";
 
 export default {
   name: "ObraDetalleView",
+
   setup() {
     const authStore = useAuthStore();
     const route = useRoute();
     return { authStore, route };
   },
+
   data() {
     return {
       obra: {},
@@ -176,6 +196,7 @@ export default {
       curvaAvanceAcum: [],
     };
   },
+
   computed: {
     esAdmin() {
       return (
@@ -185,7 +206,8 @@ export default {
       );
     },
 
-    // ✅ RESUMEN CORTADO POR FECHA ACTUAL (solo períodos cerrados)
+    // ✅ RESUMEN HASTA FECHA ACTUAL: solo períodos cerrados (hasta < hoy)
+    // labels esperado: "YYYY-MM-DD → YYYY-MM-DD" (como lo estás usando)
     resumenCurva() {
       const labels = this.curvaLabels || [];
       const planA = this.curvaPlanAcum || [];
@@ -193,15 +215,9 @@ export default {
       const avA = this.curvaAvanceAcum || [];
       if (!labels.length) return [];
 
-      // Hoy al inicio del día para comparar
       const hoy = new Date();
-      const hoyStart = new Date(
-        hoy.getFullYear(),
-        hoy.getMonth(),
-        hoy.getDate()
-      ).getTime();
+      const hoyStart = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()).getTime();
 
-      // labels: "YYYY-MM-DD → YYYY-MM-DD"
       const parseHasta = (label) => {
         if (!label || label === "Inicio") return null;
         const parts = String(label).split("→");
@@ -211,13 +227,11 @@ export default {
         return Number.isFinite(t) ? t : null;
       };
 
-      // último período cerrado: hasta < hoyStart
+      // último período cuyo "hasta" es anterior a hoy (periodo cerrado)
       let lastIdx = 0; // incluye "Inicio"
       for (let i = 1; i < labels.length; i++) {
         const hastaTime = parseHasta(labels[i]);
-        if (hastaTime != null && hastaTime < hoyStart) {
-          lastIdx = i;
-        }
+        if (hastaTime != null && hastaTime < hoyStart) lastIdx = i;
       }
 
       const L = labels.slice(0, lastIdx + 1);
@@ -248,34 +262,37 @@ export default {
     },
   },
 
-  // ✅ FIX: cuando cambia obraId, recargamos todo (Vue reutiliza el componente)
+  // ✅ FIX: al cambiar obraId recargar todo (Vue reutiliza componente)
   watch: {
     "route.params.obraId": {
       immediate: true,
       async handler() {
-        this.obra = {};
-        this.itemsPliego = [];
-        this.avanceItems = [];
-        this.certsHistorial = [];
-        this.curvaLabels = [];
-        this.curvaPlanAcum = [];
-        this.curvaCertAcum = [];
-        this.curvaAvanceAcum = [];
-        this.certNumerosPorPeriodo = [];
-        this.financiero = [];
-        this.financieroMontos = [];
-
-        if (this.curvaChartInstance) {
-          this.curvaChartInstance.destroy();
-          this.curvaChartInstance = null;
-        }
-
+        this.resetState();
         await this.fetchData();
       },
     },
   },
 
   methods: {
+    resetState() {
+      this.obra = {};
+      this.itemsPliego = [];
+      this.avanceItems = [];
+      this.certsHistorial = [];
+      this.curvaLabels = [];
+      this.curvaPlanAcum = [];
+      this.curvaCertAcum = [];
+      this.curvaAvanceAcum = [];
+      this.certNumerosPorPeriodo = [];
+      this.financiero = [];
+      this.financieroMontos = [];
+
+      if (this.curvaChartInstance) {
+        this.curvaChartInstance.destroy();
+        this.curvaChartInstance = null;
+      }
+    },
+
     async fetchData() {
       try {
         const obraId = this.route.params.obraId;
@@ -342,22 +359,27 @@ export default {
       this.certsHistorial = res.data || [];
     },
 
-    // Corta después del último cambio real (evita línea plana)
+    // Corta después del último cambio (evita línea plana)
     cutAfterLastChange(series) {
       if (!Array.isArray(series) || series.length === 0) return [];
       const EPS = 0.0001;
+
       const s = series.map((v) => {
         const n = Number(v);
         return Number.isFinite(n) ? n : 0;
       });
+
       let lastChange = 0;
       let firstNonZero = -1;
+
       for (let i = 0; i < s.length; i++) {
         if (firstNonZero === -1 && Math.abs(s[i]) > EPS) firstNonZero = i;
         if (i > 0 && Math.abs(s[i] - s[i - 1]) > EPS) lastChange = i;
       }
+
       let lastIdx = lastChange;
       if (lastIdx === 0 && firstNonZero > 0) lastIdx = firstNonZero;
+
       return s.map((v, i) => (i <= lastIdx ? v : null));
     },
 
@@ -372,6 +394,7 @@ export default {
       const certPlot = this.cutAfterLastChange(certificado || []);
       const realPlot = this.cutAfterLastChange(avance || []);
 
+      // 1) Planificado: más grueso y transparente (al fondo)
       const dsPlan = {
         label: "Planificado",
         data: (planificado || []).map((v) => Number(v ?? 0)),
@@ -383,6 +406,7 @@ export default {
         order: 10,
       };
 
+      // 2) Certificado: medio
       const dsCert = {
         label: "Certificado",
         data: certPlot,
@@ -397,6 +421,7 @@ export default {
         order: 5,
       };
 
+      // 3) Real: arriba (más fino)
       const dsReal = {
         label: "Avance de Obra",
         data: realPlot,
@@ -413,6 +438,7 @@ export default {
 
       const datasets = [dsPlan, dsCert, dsReal];
 
+      // Financiero (solo admin)
       if (this.esAdmin && financiero && financiero.length) {
         datasets.push({
           label: "Avance financiero",
@@ -445,17 +471,13 @@ export default {
 
                   if (labelBase === "Certificado") {
                     const numsArr =
-                      (self.certNumerosPorPeriodo &&
-                        self.certNumerosPorPeriodo[idx]) ||
-                      [];
-                    const numText =
-                      numsArr.length > 0 ? ` (N° ${numsArr.join(", ")})` : "";
+                      (self.certNumerosPorPeriodo && self.certNumerosPorPeriodo[idx]) || [];
+                    const numText = numsArr.length ? ` (N° ${numsArr.join(", ")})` : "";
                     return `${labelBase}${numText}: ${value.toFixed(2)}%`;
                   }
 
                   if (labelBase === "Avance financiero") {
-                    const monto =
-                      (self.financieroMontos && self.financieroMontos[idx]) || 0;
+                    const monto = (self.financieroMontos && self.financieroMontos[idx]) || 0;
                     const montoStr = Number(monto).toLocaleString("es-AR", {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
@@ -487,9 +509,7 @@ export default {
 
     formatPeriodo(cert) {
       if (!cert.periodo_desde || !cert.periodo_hasta) return "";
-      return `${this.formatDate(cert.periodo_desde)} → ${this.formatDate(
-        cert.periodo_hasta
-      )}`;
+      return `${this.formatDate(cert.periodo_desde)} → ${this.formatDate(cert.periodo_hasta)}`;
     },
 
     formatPercent(value) {
@@ -497,6 +517,7 @@ export default {
     },
 
     verDetalleCert(certId) {
+      // ✅ Solo administrador navega
       if (!this.esAdmin) {
         alert("Solo un administrador puede ver el detalle de la certificación");
         return;
@@ -504,10 +525,7 @@ export default {
 
       this.$router.push({
         name: "DetalleCertificacion",
-        params: {
-          obraId: this.route.params.obraId,
-          certId,
-        },
+        params: { obraId: this.route.params.obraId, certId },
       });
     },
 
@@ -545,19 +563,86 @@ export default {
 <style scoped>
 .obra-detalle-view { padding: 20px; }
 .titulo-obra { text-align: center; font-size: 2rem; margin-bottom: 20px; }
-.acciones-container { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-bottom: 25px; }
+
+.acciones-container {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 25px;
+}
+
 .action-btn { width: auto !important; flex: 0 0 auto; }
-.panel-avance { display: flex; flex-direction: column; gap: 20px; }
-.panel { background: #ffffff; padding: 16px; border-radius: 10px; border: 1px solid #9ca3af; box-shadow: 0 8px 18px rgba(15, 23, 42, 0.15); }
+
+.panel-avance {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.panel {
+  background: #ffffff;
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px solid #9ca3af;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.15);
+  min-width: 0;
+}
+
 .panel-curva { min-height: 320px; }
-.chart-wrap { height: 340px; width: 100%; position: relative; }
 
-.panel-resumen { background: #020617; border: 1px solid #22c55e; color: #e5e7eb; }
-.panel-resumen h3 { font-size: 1.1rem; margin-bottom: 10px; font-weight: 800; color: #bbf7d0; text-transform: uppercase; letter-spacing: 0.06em; }
+.chart-wrap {
+  height: 340px;
+  width: 100%;
+  position: relative;
+  min-width: 0;
+}
 
-.tabla-resumen { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
-.tabla-resumen th, .tabla-resumen td { border: 1px solid #4b5563; padding: 8px 10px; text-align: center; }
-.tabla-resumen th { background: linear-gradient(90deg, #047857, #22c55e); color: #f9fafb; font-weight: 800; text-transform: uppercase; font-size: 0.78rem; }
+/* ✅ wrappers para tablas (responsive real) */
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.table-wrapper table { min-width: 900px; }
+
+/* RESUMEN */
+.panel-resumen {
+  background: #020617;
+  border: 1px solid #22c55e;
+  color: #e5e7eb;
+}
+
+.panel-resumen h3 {
+  font-size: 1.1rem;
+  margin-bottom: 10px;
+  font-weight: 800;
+  color: #bbf7d0;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.tabla-resumen {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.tabla-resumen th,
+.tabla-resumen td {
+  border: 1px solid #4b5563;
+  padding: 8px 10px;
+  text-align: center;
+}
+
+.tabla-resumen th {
+  background: linear-gradient(90deg, #047857, #22c55e);
+  color: #f9fafb;
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+}
 
 .th-plan { background: linear-gradient(90deg, #1d4ed8, #3b82f6) !important; }
 .th-cert { background: linear-gradient(90deg, #047857, #22c55e) !important; }
@@ -567,25 +652,91 @@ export default {
 .td-cert { background: rgba(34, 197, 94, 0.08); }
 .td-real { background: rgba(239, 68, 68, 0.10); }
 
-.th-sep-right, .td-sep-right { border-right: 3px solid rgba(255, 255, 255, 0.22) !important; }
+.th-sep-right, .td-sep-right {
+  border-right: 3px solid rgba(255, 255, 255, 0.22) !important;
+}
 
 .tabla-resumen tbody tr:nth-child(odd) { background: #0b1120; }
 .tabla-resumen tbody tr:nth-child(even) { background: #020617; }
 
+.col-periodo { text-align: left; white-space: nowrap; }
+
 .pos { color: #bef264; font-weight: 800; }
 .neg { color: #fb7185; font-weight: 800; }
 
-.panel-items { background: #020617; color: #e5e7eb; border-color: #0ea5e9; }
+/* ITEMS */
+.panel-items {
+  background: #020617;
+  color: #e5e7eb;
+  border-color: #0ea5e9;
+}
+
 .item-avance { margin-bottom: 14px; }
-.item-header { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.9rem; }
-.barra { height: 16px; background: #1f2937; border-radius: 999px; overflow: hidden; }
-.barra-progreso { height: 100%; background: #22c55e; box-shadow: 0 0 10px rgba(34, 197, 94, 0.9); transition: width 0.4s ease; }
 
-.panel-certificaciones { margin-top: 10px; background: #020617; border: 1px solid #22c55e; color: #e5e7eb; }
-.tabla-certificaciones { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-.tabla-certificaciones th, .tabla-certificaciones td { border: 1px solid #4b5563; padding: 8px 10px; text-align: center; }
-.tabla-certificaciones th { background: linear-gradient(90deg, #047857, #22c55e); color: #f9fafb; }
+.item-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 0.9rem;
+}
 
-.btn-detalle { padding: 4px 12px; background: #22c55e; color: #022c22; border: none; border-radius: 999px; cursor: pointer; font-weight: 700; }
+.barra {
+  height: 16px;
+  background: #1f2937;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.barra-progreso {
+  height: 100%;
+  background: #22c55e;
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.9);
+  transition: width 0.4s ease;
+}
+
+/* CERTIFICACIONES */
+.panel-certificaciones {
+  margin-top: 10px;
+  background: #020617;
+  border: 1px solid #22c55e;
+  color: #e5e7eb;
+}
+
+.tabla-certificaciones {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.tabla-certificaciones th,
+.tabla-certificaciones td {
+  border: 1px solid #4b5563;
+  padding: 8px 10px;
+  text-align: center;
+}
+
+.tabla-certificaciones th {
+  background: linear-gradient(90deg, #047857, #22c55e);
+  color: #f9fafb;
+}
+
+.btn-detalle {
+  padding: 4px 12px;
+  background: #22c55e;
+  color: #022c22;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
 .text-muted { color: #9ca3af; font-size: 0.9rem; }
+
+/* ✅ mobile */
+@media (max-width: 900px) {
+  .obra-detalle-view { padding: 12px; }
+  .titulo-obra { font-size: 1.4rem; }
+  .chart-wrap { height: 280px; }
+  .panel { padding: 12px; }
+}
 </style>
