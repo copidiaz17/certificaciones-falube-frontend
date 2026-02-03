@@ -5,7 +5,7 @@ import App from './App.vue';
 import router from './router'; 
 import { useAuthStore } from './stores/authStore'; 
 // import './assets/main.css'; // Si usas archivos CSS por defecto
-import './assets/css/dashboard.css';
+import './assets/css/Dashboard.css';
 
 const app = createApp(App);
 const pinia = createPinia();
