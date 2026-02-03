@@ -1,71 +1,54 @@
-<template>
-  <div class="login-page">
-    <div class="login-container">
-      <h1 class="login-title">SISTEMA DE CERTIFICACIÓN DE OBRA</h1>
-
-      <form @submit.prevent="login" class="login-form">
-        <img src="/falube.jpg" alt="Logo" class="logo" />
-
-        <div class="input-group">
-          <input v-model="email" type="email" placeholder="Email" required />
-        </div>
-
-        <div class="input-group">
-          <input v-model="password" type="password" placeholder="Contraseña" required />
-        </div>
-
-        <button type="submit" class="btn-submit">Ingresar</button>
-
-        <p v-if="error" class="error">{{ error }}</p>
-      </form>
-    </div>
-  </div>
-</template>
-
 <script>
 import api from "../config/axios.Config.js";
-import { useAuthStore } from '../stores/authStore';
-
-// 🟢 CORRECCIÓN: Importar el CSS local aquí
-import "../assets/css/Loguin.css"
+import { useAuthStore } from "../stores/authStore";
+import "../assets/css/Loguin.css";
 
 export default {
-  name: "LoginView",
-  data() {
-    return {
-      email: "user@test.com", 
-      password: "password123", 
-      error: null
-    };
-  },
-  methods: {
-    async login() {
-      this.error = null;
-      try {
-        const res = await api.post("/auth/login", {
-          email: this.email,
-          password: this.password
-        });
+  name: "LoginView",
+  data() {
+    return {
+      email: "",
+      password: "",
+      error: null,
+      loading: false,
+    };
+  },
+  methods: {
+    async login() {
+      this.error = null;
+      this.loading = true;
 
-        localStorage.setItem("token", res.data.token);
-        
-        const authStore = useAuthStore();
-        authStore.loadUserFromToken(res.data.token);
-        
-        window.location.replace("/dashboard"); 
+      try {
+        console.log("[LOGIN] intentando:", this.email);
 
-      } catch (err) {
-        this.error = err.response?.data?.message || "Error al iniciar sesión";
-      }
-    }
-  }
+        const res = await api.post("/auth/login", {
+          email: this.email,
+          password: this.password,
+        });
+
+        console.log("[LOGIN] OK:", res.data);
+
+        const token = res.data?.token;
+        if (!token) throw new Error("No vino token en la respuesta");
+
+        localStorage.setItem("token", token);
+
+        const authStore = useAuthStore();
+        // si tu store tiene loadUserFromToken, ok:
+        if (authStore.loadUserFromToken) authStore.loadUserFromToken(token);
+        // si además tenés initialize(), no hace daño:
+        if (authStore.initialize) authStore.initialize();
+
+        // ✅ navegación SPA (no recarga el sitio)
+        this.$router.push({ name: "Dashboard" });
+      } catch (err) {
+        console.error("[LOGIN] ERROR:", err);
+        console.error("[LOGIN] response:", err?.response);
+        this.error = err?.response?.data?.message || err?.message || "Error al iniciar sesión";
+      } finally {
+        this.loading = false;
+      }
+    },
+  },
 };
 </script>
-
-<style scoped>
-/* NOTA: Estos estilos son mínimos, el resto debe estar en login.css */
-img {
-  max-width: 200px;
-  height: auto;
-}
-</style>
