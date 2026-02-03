@@ -140,4 +140,4 @@ export default {
 };
 </script>
 
-<style src="../assets/css/dashboard.css"></style>
+<style src="../assets/css/Dashboard.css"></style>
