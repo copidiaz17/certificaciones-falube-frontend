@@ -1,35 +1,40 @@
 // src/config/axios.Config.js
-import axios from 'axios';
+import axios from "axios";
 
-// 🛑 Configura la URL base de tu API de Node.js
-const API_BASE_URL = 'http://localhost:3000/api'; 
+// ✅ En prod: VITE_API_URL=https://tu-backend.onrender.com/api
+// ✅ En dev: cae a localhost
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
 const api = axios.create({
-  baseURL: API_BASE_URL, 
-  timeout: 10000 
+  baseURL: API_BASE_URL,
+  timeout: 10000,
 });
 
-// Interceptor para adjuntar el token y manejar el 401
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-}, (error) => {
-  return Promise.reject(error);
-});
-
-api.interceptors.response.use(
-    (response) => response,
-    (error) => {
-        if (error.response && error.response.status === 401) {
-            // Si el token es inválido o expiró, cierra sesión
-            localStorage.removeItem('token');
-            window.location.href = "/"; // Redirige a la raíz (Login)
-        }
-        return Promise.reject(error);
+// Interceptor para adjuntar el token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Interceptor para manejar 401
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem("token");
+      // ✅ si tu ruta de login es "Login", normalmente es "/"
+      // si es "/login", cambiá esta línea
+      window.location.href = "/";
+    }
+    return Promise.reject(error);
+  }
 );
 
 export default api;
