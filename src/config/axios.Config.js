@@ -1,17 +1,15 @@
-// frontend/src/config/axios.Config.js
 import axios from "axios";
 
-// ✅ En Render (frontend) seteás: VITE_API_BASE_URL=https://TU-BACKEND.onrender.com/api
-// ✅ En local cae a localhost
+// En DEV usás localhost, en PROD usás la env VITE_API_BASE_URL
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: `${API_BASE_URL}/api`,
   timeout: 10000,
 });
 
-// Token
+// Interceptor para adjuntar token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
@@ -21,13 +19,12 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// 401 -> logout
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    if (error.response && error.response.status === 401) {
       localStorage.removeItem("token");
-      window.location.href = "/"; // o '/login'
+      window.location.href = "/";
     }
     return Promise.reject(error);
   }
