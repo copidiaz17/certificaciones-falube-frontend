@@ -161,6 +161,78 @@
           No hay certificaciones registradas
         </p>
       </div>
+
+      <!-- HISTORIAL PLANIFICACIONES -->
+      <div class="panel panel-planificaciones">
+        <h3>Historial de Planificaciones</h3>
+
+        <div class="table-wrapper" v-if="planificacionesHistorial.length > 0">
+          <table class="tabla-certificaciones">
+            <thead>
+              <tr>
+                <th>Período Desde</th>
+                <th>Período Hasta</th>
+                <th>% Total Plan.</th>
+                <th v-if="authStore.canModify">Acciones</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr v-for="planif in planificacionesHistorial" :key="planif.id">
+                <td>{{ formatDate(planif.fecha_desde) }}</td>
+                <td>{{ formatDate(planif.fecha_hasta) }}</td>
+                <td>{{ formatPercent(planif.total_porcentaje) }}</td>
+                <td v-if="authStore.canModify">
+                  <button class="btn-detalle btn-editar" @click="editarPlanificacion(planif.id)">
+                    Editar
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p v-else class="text-muted">
+          No hay planificaciones registradas
+        </p>
+      </div>
+
+      <!-- HISTORIAL AVANCES -->
+      <div class="panel panel-avances-hist">
+        <h3>Historial de Avances de Obra</h3>
+
+        <div class="table-wrapper" v-if="avancesHistorial.length > 0">
+          <table class="tabla-certificaciones">
+            <thead>
+              <tr>
+                <th>N° Avance</th>
+                <th>Fecha</th>
+                <th>Período</th>
+                <th>Avance Ponderado</th>
+                <th v-if="authStore.canModify">Acciones</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr v-for="av in avancesHistorial" :key="av.id">
+                <td>{{ av.numero_avance }}</td>
+                <td>{{ formatDate(av.fecha_avance) }}</td>
+                <td>{{ formatPeriodo(av) }}</td>
+                <td>{{ formatPercent(av.avance_ponderado) }}</td>
+                <td v-if="authStore.canModify">
+                  <button class="btn-detalle btn-editar" @click="editarAvance(av.id)">
+                    Editar
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p v-else class="text-muted">
+          No hay avances registrados
+        </p>
+      </div>
     </div>
   </div>
 </template>
@@ -190,6 +262,8 @@ export default {
       curvaChartInstance: null,
       certNumerosPorPeriodo: [],
       certsHistorial: [],
+      planificacionesHistorial: [],
+      avancesHistorial: [],
       financiero: [],
       financieroMontos: [],
       curvaLabels: [],
@@ -281,6 +355,8 @@ export default {
       this.itemsPliego = [];
       this.avanceItems = [];
       this.certsHistorial = [];
+      this.planificacionesHistorial = [];
+      this.avancesHistorial = [];
       this.curvaLabels = [];
       this.curvaPlanAcum = [];
       this.curvaCertAcum = [];
@@ -310,7 +386,11 @@ export default {
 
         await this.cargarAvances();
         await this.cargarCurva();
-        await this.cargarHistorialCertificaciones();
+        await Promise.all([
+          this.cargarHistorialCertificaciones(),
+          this.cargarHistorialPlanificaciones(),
+          this.cargarHistorialAvances(),
+        ]);
       } catch (err) {
         console.error("Error cargando detalle de obra:", err);
       }
@@ -558,6 +638,42 @@ export default {
         params: { obraId: this.route.params.obraId },
       });
     },
+
+    async cargarHistorialPlanificaciones() {
+      const obraId = this.route.params.obraId;
+      try {
+        const res = await api.get(`/obras/${obraId}/planificaciones`);
+        this.planificacionesHistorial = res.data || [];
+      } catch (e) {
+        console.error("Error cargando historial de planificaciones:", e);
+        this.planificacionesHistorial = [];
+      }
+    },
+
+    async cargarHistorialAvances() {
+      const obraId = this.route.params.obraId;
+      try {
+        const res = await api.get(`/obras/${obraId}/avances`);
+        this.avancesHistorial = res.data || [];
+      } catch (e) {
+        console.error("Error cargando historial de avances:", e);
+        this.avancesHistorial = [];
+      }
+    },
+
+    editarPlanificacion(planifId) {
+      this.$router.push({
+        name: "EditarPlanificacion",
+        params: { obraId: this.route.params.obraId, planifId },
+      });
+    },
+
+    editarAvance(avanceId) {
+      this.$router.push({
+        name: "EditarAvance",
+        params: { obraId: this.route.params.obraId, avanceId },
+      });
+    },
   },
 };
 </script>
@@ -730,6 +846,27 @@ export default {
   border-radius: 999px;
   cursor: pointer;
   font-weight: 700;
+}
+
+.btn-editar {
+  background: #f59e0b;
+  color: #1c1917;
+}
+
+/* PLANIFICACIONES */
+.panel-planificaciones {
+  margin-top: 10px;
+  background: #020617;
+  border: 1px solid #3b82f6;
+  color: #e5e7eb;
+}
+
+/* AVANCES HISTORIAL */
+.panel-avances-hist {
+  margin-top: 10px;
+  background: #020617;
+  border: 1px solid #ef4444;
+  color: #e5e7eb;
 }
 
 .text-muted { color: #9ca3af; font-size: 0.9rem; }

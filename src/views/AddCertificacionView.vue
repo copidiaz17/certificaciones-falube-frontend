@@ -42,6 +42,7 @@
           <th>Unidad</th>
           <th>Cantidad</th>
           <th>Avance (%)</th>
+          <th>% Disp.</th>
           <th>Precio Unit.</th>
           <th>Importe</th>
         </tr>
@@ -58,13 +59,14 @@
             <input
               type="number"
               min="0"
-              max="100"
+              :max="item.porcentajeDisponible"
               step="0.01"
               v-model.number="item.avance_porcentaje"
               @input="calcularImporte(item)"
               class="input-porcentaje"
             />
           </td>
+          <td>{{ item.porcentajeDisponible }}%</td>
 
           <td>{{ mostrar(item.precioUnitario) }}</td>
           <td>{{ mostrar(item.importe) }}</td>
@@ -355,7 +357,7 @@ export default {
       try {
         const [obraRes, pliegoRes] = await Promise.all([
           api.get(`/obras/${this.obraId}`),
-          api.get(`/obras/${this.obraId}/pliego`),
+          api.get(`/obras/${this.obraId}/items-disponibles-certificacion`),
         ]);
 
         this.obra = obraRes.data;
@@ -376,6 +378,7 @@ export default {
             cantidad,
             precioUnitario: costoUnitario,
             costoTotalItem: costoParcial,
+            porcentajeDisponible: Number(it.porcentajeDisponible || 100),
             avance_porcentaje: 0,
             importe: 0,
           };

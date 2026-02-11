@@ -1,6 +1,6 @@
 <template>
   <div class="add-cert-view">
-    <h2 class="titulo">Nuevo Avance de Obra</h2>
+    <h2 class="titulo">{{ editMode ? "Editar Avance de Obra" : "Nuevo Avance de Obra" }}</h2>
 
     <!-- CABECERA -->
     <div class="cabecera-cert">
@@ -46,6 +46,7 @@
           <th>Descripción</th>
           <th>Unidad</th>
           <th>Cantidad</th>
+          <th>% Disp.</th>
           <th>Avance (%)</th>
         </tr>
       </thead>
@@ -56,12 +57,13 @@
           <td>{{ item.descripcion }}</td>
           <td>{{ item.unidad }}</td>
           <td>{{ mostrar(item.cantidad) }}</td>
+          <td>{{ item.porcentajeDisponible }}%</td>
 
           <td>
             <input
               type="number"
               min="0"
-              max="100"
+              :max="item.porcentajeDisponible"
               step="0.01"
               v-model.number="item.avance_porcentaje"
               class="input-porcentaje"
@@ -72,7 +74,7 @@
     </table>
 
     <button class="btn-guardar" @click="guardarAvance">
-      Guardar Avance de Obra
+      {{ editMode ? "Actualizar Avance de Obra" : "Guardar Avance de Obra" }}
     </button>
   </div>
 </template>
@@ -83,7 +85,7 @@ import { useToast } from "vue-toastification";
 
 export default {
   name: "AddAvanceObraView",
-  props: ["obraId"],
+  props: ["obraId", "avanceId"],
 
   setup() {
     const toast = useToast();
@@ -92,6 +94,7 @@ export default {
 
   data() {
     return {
+      editMode: false,
       avance: {
         numero_avance: "",
         fecha_avance: "",
@@ -110,7 +113,6 @@ export default {
       );
     },
 
-    // ✅ % global ponderado por costoParcial (igual criterio que certificaciones)
     avanceGlobalPonderado() {
       const total = this.totalProyecto;
       if (!total) return 0;
@@ -134,17 +136,83 @@ export default {
     },
 
     async cargarPliego() {
-      const res = await api.get(`/obras/${this.obraId}/pliego`);
+      const res = await api.get(`/obras/${this.obraId}/items-disponibles-avance`);
 
       this.avanceItems = (res.data || []).map((it) => ({
         pliego_item_id: it.id,
         numeroItem: it.numeroItem,
-        descripcion: it.ItemGeneral?.descripcion || it.descripcionItem,
-        unidad: it.ItemGeneral?.unidad || it.unidadMedida,
+        descripcion: it.descripcionItem,
+        unidad: it.unidadMedida,
         cantidad: it.cantidad,
-        costoParcial: Number(it.costoParcial || 0), // ✅ clave para ponderar
+        costoParcial: Number(it.costoParcial || 0),
+        porcentajeDisponible: Number(it.porcentajeDisponible || 100),
         avance_porcentaje: 0,
       }));
+    },
+
+    async cargarAvanceExistente() {
+      const [disponiblesRes, avanceRes] = await Promise.all([
+        api.get(`/obras/${this.obraId}/items-disponibles-avance`),
+        api.get(`/obras/${this.obraId}/avances/${this.avanceId}`),
+      ]);
+
+      const avanceData = avanceRes.data;
+
+      this.avance.numero_avance = avanceData.numero_avance;
+      this.avance.fecha_avance = avanceData.fecha_avance
+        ? avanceData.fecha_avance.split("T")[0]
+        : "";
+      this.avance.periodo_desde = avanceData.periodo_desde
+        ? avanceData.periodo_desde.split("T")[0]
+        : "";
+      this.avance.periodo_hasta = avanceData.periodo_hasta
+        ? avanceData.periodo_hasta.split("T")[0]
+        : "";
+
+      // Mapa de ítems disponibles (sin este avance, ítems a 100% no aparecen)
+      const disponiblesMap = {};
+      (disponiblesRes.data || []).forEach((it) => {
+        disponiblesMap[it.id] = {
+          pliego_item_id: it.id,
+          numeroItem: it.numeroItem,
+          descripcion: it.descripcionItem,
+          unidad: it.unidadMedida,
+          cantidad: it.cantidad,
+          costoParcial: Number(it.costoParcial || 0),
+          porcentajeDisponible: Number(it.porcentajeDisponible || 0),
+          avance_porcentaje: 0,
+        };
+      });
+
+      // Fusionar con los ítems existentes del avance
+      (avanceData.items || []).forEach((ei) => {
+        const pid = ei.pliego_item_id;
+        const porcentaje = Number(ei.avance_porcentaje || 0);
+        const pi = ei.pliegoItem || {};
+
+        if (disponiblesMap[pid]) {
+          // Ya está disponible: sumarle su propia contribución al máximo
+          disponiblesMap[pid].porcentajeDisponible = Math.min(
+            100,
+            disponiblesMap[pid].porcentajeDisponible + porcentaje
+          );
+          disponiblesMap[pid].avance_porcentaje = porcentaje;
+        } else {
+          // Llegó a 100%: lo agregamos con el porcentaje actual como máximo
+          disponiblesMap[pid] = {
+            pliego_item_id: pid,
+            numeroItem: pi.numeroItem || "",
+            descripcion: pi.descripcionItem || "",
+            unidad: pi.unidadMedida || "",
+            cantidad: pi.cantidad || 0,
+            costoParcial: Number(pi.costoParcial || 0),
+            porcentajeDisponible: porcentaje,
+            avance_porcentaje: porcentaje,
+          };
+        }
+      });
+
+      this.avanceItems = Object.values(disponiblesMap);
     },
 
     async guardarAvance() {
@@ -161,20 +229,34 @@ export default {
         })),
       };
 
-      const res = await api.post(`/obras/${this.obraId}/avances`, payload);
-
-      const msgExtra =
-        res?.data?.avance_periodo_ponderado != null
-          ? `\nAvance ponderado período: ${Number(res.data.avance_periodo_ponderado).toFixed(2)}%`
-          : "";
-
-      this.toast.success("Avance de obra guardado correctamente" + msgExtra);
-      this.$router.back();
+      try {
+        if (this.editMode) {
+          await api.put(`/obras/${this.obraId}/avances/${this.avanceId}`, payload);
+          this.toast.success("Avance actualizado correctamente.");
+        } else {
+          const res = await api.post(`/obras/${this.obraId}/avances`, payload);
+          const msgExtra =
+            res?.data?.avance_periodo_ponderado != null
+              ? `\nAvance ponderado período: ${Number(res.data.avance_periodo_ponderado).toFixed(2)}%`
+              : "";
+          this.toast.success("Avance de obra guardado correctamente" + msgExtra);
+        }
+        this.$router.back();
+      } catch (err) {
+        console.error("Error guardando avance:", err);
+        const msg = err.response?.data?.message || "Error al guardar el avance.";
+        this.toast.error(msg);
+      }
     },
   },
 
   mounted() {
-    this.cargarPliego();
+    if (this.avanceId) {
+      this.editMode = true;
+      this.cargarAvanceExistente();
+    } else {
+      this.cargarPliego();
+    }
   },
 };
 </script>
@@ -184,7 +266,6 @@ export default {
   padding: 20px;
 }
 
-/* ---------- CABECERA ---------- */
 .cabecera-cert {
   display: flex;
   gap: 20px;
@@ -214,7 +295,6 @@ export default {
   font-size: 14px;
 }
 
-/* ---------- RESUMEN ---------- */
 .resumen-total {
   display: flex;
   justify-content: space-between;
@@ -228,15 +308,9 @@ export default {
   font-weight: 600;
 }
 
-.ok {
-  color: #bef264;
-}
+.ok { color: #bef264; }
+.bad { color: #fb7185; }
 
-.bad {
-  color: #fb7185;
-}
-
-/* ---------- TABLA ---------- */
 .data-table {
   width: 100%;
   border-collapse: collapse;
@@ -261,7 +335,6 @@ export default {
   text-align: center;
 }
 
-/* -------- BOTÓN -------- */
 .btn-guardar {
   margin-top: 20px;
   background: #166534;

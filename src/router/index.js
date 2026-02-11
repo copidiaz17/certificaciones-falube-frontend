@@ -123,6 +123,21 @@ const routes = [
   meta: { requiresAuth: true }
 },
 
+      {
+        path: "obra/:obraId/planificacion/:planifId/editar",
+        name: "EditarPlanificacion",
+        component: AddPlanificacionView,
+        props: true,
+        meta: { requiresAuth: true, requiresModification: true },
+      },
+
+      {
+        path: "obra/:obraId/avance/:avanceId/editar",
+        name: "EditarAvance",
+        component: AddAvanceObraView,
+        props: true,
+        meta: { requiresAuth: true, requiresModification: true },
+      },
 
     ],
   },
