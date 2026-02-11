@@ -43,11 +43,11 @@
                 Seleccione una repartición
               </option>
 
-              <option value="MUNICIPALIDAD_SDE">
+              <option value="municipalidad_sgo">
                 Municipalidad de Santiago del Estero
               </option>
 
-              <option value="ARQUITECTURA_PROVINCIA">
+              <option value="direccion_arquitectura">
                 Dirección Provincial de Arquitectura
               </option>
             </select>
