@@ -14,29 +14,19 @@ const api = axios.create({
   timeout: 15000,
 });
 
-// ✅ DEBUG: deja esto activado hasta que quede estable
-console.log("[AXIOS] baseURL =", api.defaults.baseURL);
-
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
     if (token) config.headers.Authorization = `Bearer ${token}`;
-
-    // DEBUG request
-    console.log("[AXIOS] REQUEST", config.method?.toUpperCase(), (config.baseURL || "") + (config.url || ""));
     return config;
   },
   (error) => Promise.reject(error)
 );
 
 api.interceptors.response.use(
-  (res) => {
-    // DEBUG response
-    console.log("[AXIOS] RESPONSE", res.status, res.config.url, res.data);
-    return res;
-  },
+  (res) => res,
   (error) => {
-    console.log(
+    console.error(
       "[AXIOS] ERROR",
       error?.response?.status,
       error?.config?.url,

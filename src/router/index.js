@@ -1,6 +1,7 @@
 // src/router/index.js
 import { createRouter, createWebHistory } from "vue-router";
 import { h } from "vue";
+import { useToast } from "vue-toastification";
 
 import LoginView from "../views/LoginView.vue";
 import DashboardView from "../views/DashboardView.vue";
@@ -144,7 +145,8 @@ router.beforeEach((to, from, next) => {
   if (requiresAuth && !isAuthenticated) {
     next({ name: "Login" });
   } else if (requiresModify && !canUserModify) {
-    alert("Acceso denegado. Rol de solo lectura.");
+    const toast = useToast();
+    toast.warning("Acceso denegado. Rol de solo lectura.");
     next({ name: "DashboardHome" });
   } else if (to.name === "Login" && isAuthenticated) {
     next({ name: "DashboardHome" });

@@ -170,6 +170,7 @@ import api from "../config/axios.Config.js";
 import { useAuthStore } from "../stores/authStore";
 import { useRoute } from "vue-router";
 import Chart from "chart.js/auto";
+import { useToast } from "vue-toastification";
 
 export default {
   name: "ObraDetalleView",
@@ -177,7 +178,8 @@ export default {
   setup() {
     const authStore = useAuthStore();
     const route = useRoute();
-    return { authStore, route };
+    const toast = useToast();
+    return { authStore, route, toast };
   },
 
   data() {
@@ -519,7 +521,7 @@ export default {
     verDetalleCert(certId) {
       // ✅ Solo administrador navega
       if (!this.esAdmin) {
-        alert("Solo un administrador puede ver el detalle de la certificación");
+        this.toast.warning("Solo un administrador puede ver el detalle de la certificación");
         return;
       }
 
@@ -739,4 +741,5 @@ export default {
   .chart-wrap { height: 280px; }
   .panel { padding: 12px; }
 }
+
 </style>

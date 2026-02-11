@@ -171,6 +171,7 @@
 <script>
 import api from "../config/axios.Config.js";
 import { useAuthStore } from '../stores/authStore';
+import { useToast } from "vue-toastification";
 
 
 export default {
@@ -180,7 +181,8 @@ export default {
     },
     setup() {
         const authStore = useAuthStore();
-        return { authStore };
+        const toast = useToast();
+        return { authStore, toast };
     },
     data() {
         return {
@@ -314,7 +316,7 @@ export default {
                 await this.fetchItemsPliego();
             } catch (err) {
                 console.error('Error eliminando item:', err);
-                alert('Error eliminando item');
+                this.toast.error('Error eliminando ítem');
             }
         },
 

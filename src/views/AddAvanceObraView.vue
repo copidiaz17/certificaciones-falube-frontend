@@ -79,10 +79,16 @@
 
 <script>
 import api from "../config/axios.Config.js";
+import { useToast } from "vue-toastification";
 
 export default {
   name: "AddAvanceObraView",
   props: ["obraId"],
+
+  setup() {
+    const toast = useToast();
+    return { toast };
+  },
 
   data() {
     return {
@@ -143,7 +149,7 @@ export default {
 
     async guardarAvance() {
       if (!this.avance.numero_avance || !this.avance.fecha_avance) {
-        alert("Completá N° de avance y Fecha.");
+        this.toast.warning("Completá N° de avance y Fecha.");
         return;
       }
 
@@ -162,7 +168,7 @@ export default {
           ? `\nAvance ponderado período: ${Number(res.data.avance_periodo_ponderado).toFixed(2)}%`
           : "";
 
-      alert("Avance de obra guardado correctamente" + msgExtra);
+      this.toast.success("Avance de obra guardado correctamente" + msgExtra);
       this.$router.back();
     },
   },

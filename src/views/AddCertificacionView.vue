@@ -191,10 +191,16 @@
 
 <script>
 import api from "../config/axios.Config.js";
+import { useToast } from "vue-toastification";
 
 export default {
   name: "AddCertificacionView",
   props: ["obraId"],
+
+  setup() {
+    const toast = useToast();
+    return { toast };
+  },
 
   data() {
     return {
@@ -383,7 +389,7 @@ export default {
         this.recalcularTotales();
       } catch (error) {
         console.error("Error cargando datos de certificación:", error);
-        alert("Error al cargar datos para la certificación.");
+        this.toast.error("Error al cargar datos para la certificación.");
       }
     },
 
@@ -422,7 +428,7 @@ export default {
         };
 
         if (payload.items.length === 0) {
-          alert("Debe cargar al menos un ítem con avance mayor a 0.");
+          this.toast.warning("Debe cargar al menos un ítem con avance mayor a 0.");
           return;
         }
 
@@ -431,7 +437,7 @@ export default {
           payload
         );
 
-        alert("Certificación guardada correctamente.");
+        this.toast.success("Certificación guardada correctamente.");
         this.$router.back();
       } catch (error) {
         console.error("Error guardando certificación:", error);
@@ -439,7 +445,7 @@ export default {
           error.response?.data?.error ||
           error.response?.data?.message ||
           "Error al guardar la certificación.";
-        alert(msg);
+        this.toast.error(msg);
       }
     },
   },
