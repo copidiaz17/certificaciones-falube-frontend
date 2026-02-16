@@ -303,6 +303,17 @@ export default {
         console.error("Error cargando detalle de obra:", err);
       } finally {
         this.cargando = false;
+        // Esperar que Vue actualice el DOM (el canvas aparece cuando cargando = false)
+        await this.$nextTick();
+        if (this.curvaLabels.length) {
+          this.renderCurva(
+            this.curvaLabels,
+            this.curvaPlanAcum,
+            this.curvaCertAcum,
+            this.curvaAvanceAcum,
+            this.financiero
+          );
+        }
       }
     },
 
@@ -331,8 +342,7 @@ export default {
       this.curvaPlanAcum = planificado || [];
       this.curvaCertAcum = certificado || [];
       this.curvaAvanceAcum = avance || [];
-
-      this.renderCurva(labels, planificado, certificado, avance, this.financiero);
+      // renderCurva se llama desde fetchData() después de que el DOM se actualiza
     },
 
     async cargarHistorialCertificaciones() {
