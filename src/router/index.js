@@ -1,5 +1,5 @@
 // src/router/index.js
-import { createRouter, createWebHistory } from "vue-router";
+import { createRouter, createWebHashHistory } from "vue-router";
 import { h } from "vue";
 import { useToast } from "vue-toastification";
 
@@ -144,7 +144,7 @@ const routes = [
 ];
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHashHistory(),
   routes,
 });
 
