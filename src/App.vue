@@ -1,12 +1,15 @@
 <script setup>
 import { RouterView } from 'vue-router'
-// RouterLink and HelloWorld ya no son necesarios
 </script>
 
 <template>
-  <RouterView />
+  <RouterView v-slot="{ Component }">
+    <Transition name="view-fade" mode="out-in">
+      <component :is="Component" :key="$route.fullPath" />
+    </Transition>
+  </RouterView>
 </template>
 
 <style scoped>
-/* No se necesitan estilos aquí, ya que los estilos globales y de vistas se manejan externamente */
+/* Las clases view-fade-* están definidas en Dashboard.css (global) */
 </style>

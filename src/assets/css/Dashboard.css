@@ -1,4 +1,26 @@
 /* =======================
+   DESIGN TOKENS (CSS Variables)
+======================= */
+:root {
+  --color-bg:          #121212;
+  --color-surface:     #1a1a1a;
+  --color-surface-2:   #2c2c2c;
+  --color-accent:      #f0c040;
+  --color-accent-dim:  rgba(240, 192, 64, 0.25);
+  --color-text:        #f0f0c0;
+  --color-text-muted:  #9ca3af;
+  --color-green:       #22c55e;
+  --color-blue:        #60a5fa;
+  --color-yellow:      #fbbf24;
+  --color-red:         #ef4444;
+  --radius-md:         10px;
+  --radius-btn:        10px;
+  --shadow-card:       0 8px 18px rgba(15, 23, 42, 0.35);
+  --transition-fast:   0.15s ease;
+  --transition-med:    0.25s ease;
+}
+
+/* =======================
    BASE / RESET
 ======================= */
 * { box-sizing: border-box; }
@@ -10,30 +32,40 @@ img { max-width: 100%; height: auto; }
   flex-direction: column;
   min-height: 100vh;
   font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  background-color: #121212;
-  color: #f0f0c0;
+  background-color: var(--color-bg);
+  color: var(--color-text);
 }
 
 /* =======================
-   HEADER
+   HEADER — glassmorphism
 ======================= */
 .header {
   display: flex;
-  align-items: center; /* ✅ NO stretch */
+  align-items: center;
   gap: 14px;
   padding: 10px 14px;
-  background-color: #1a1a1a;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+  /* glassmorphism */
+  background: rgba(26, 26, 26, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   position: sticky;
   top: 0;
   z-index: 80;
-  min-height: 76px; /* ✅ estable */
+  min-height: 76px;
 }
 
 .logo {
   width: 140px;
-  max-height: 56px; /* ✅ no crece infinito */
+  max-height: 56px;
   object-fit: contain;
+  /* subtle glow on logo */
+  filter: drop-shadow(0 0 6px rgba(240, 192, 64, 0.15));
+  transition: filter var(--transition-med);
+}
+.logo:hover {
+  filter: drop-shadow(0 0 10px rgba(240, 192, 64, 0.35));
 }
 
 .header-main-area {
@@ -49,10 +81,10 @@ img { max-width: 100%; height: auto; }
   font-size: 1.6rem;
   font-weight: 900;
   text-align: center;
-  color: #f0c040;
+  color: var(--color-accent);
   letter-spacing: 1px;
   text-transform: uppercase;
-  text-shadow: 0 0 10px rgba(240, 192, 64, 0.25);
+  text-shadow: 0 0 14px var(--color-accent-dim), 0 0 40px rgba(240,192,64,0.1);
   margin: 0;
   line-height: 1.1;
 }
@@ -64,21 +96,55 @@ img { max-width: 100%; height: auto; }
   flex-wrap: wrap;
 }
 
-/* Botones del header (si ya los tenías en otro css, esto no rompe) */
+/* =======================
+   BOTONES — ripple + micro-interacciones
+======================= */
 .btn-action {
+  position: relative;
+  overflow: hidden;
   border: 0;
-  border-radius: 10px;
+  border-radius: var(--radius-btn);
   padding: 10px 12px;
   font-weight: 800;
   cursor: pointer;
   color: #121212;
-  background: #f0c040;
+  background: var(--color-accent);
+  transition: filter var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
 }
-.btn-action:hover { filter: brightness(1.05); }
+
+.btn-action::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: inherit;
+  transform: scale(0);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.btn-action:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+}
+
+.btn-action:active {
+  transform: scale(0.96);
+  filter: brightness(0.95);
+}
+
+.btn-action:active::after {
+  animation: ripple 0.45s ease-out;
+}
+
+@keyframes ripple {
+  from { transform: scale(0); opacity: 1; }
+  to   { transform: scale(2.8); opacity: 0; }
+}
 
 .btn-create-obra { background: #34d399; }
-.btn-info { background: #60a5fa; }
-.btn-user { background: #fbbf24; }
+.btn-info        { background: var(--color-blue); }
+.btn-user        { background: var(--color-yellow); }
 
 /* PERFIL + LOGOUT */
 .user-profile-widget {
@@ -90,47 +156,41 @@ img { max-width: 100%; height: auto; }
   min-width: 170px;
 }
 
-.welcome-text {
-  font-size: 0.85rem;
-  color: #ccc;
-  margin: 0;
-}
-
-.user-name {
-  font-size: 1.05rem;
-  font-weight: 900;
-  color: #f0c040;
-  margin: 0;
-}
+.welcome-text { font-size: 0.85rem; color: #ccc; margin: 0; }
+.user-name    { font-size: 1.05rem; font-weight: 900; color: var(--color-accent); margin: 0; }
 
 .btn-logout-visible {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  border-radius: 10px;
+  border-radius: var(--radius-btn);
   border: 1px solid rgba(255,255,255,0.35);
   background: rgba(0,0,0,0.35);
   color: #fff;
   font-weight: 900;
   cursor: pointer;
   line-height: 1;
+  transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
 }
 .btn-logout-visible:hover {
   background: rgba(239, 68, 68, 0.25);
   border-color: rgba(239, 68, 68, 0.65);
 }
+.btn-logout-visible:active { transform: scale(0.96); }
 .logout-icon { font-size: 18px; }
 .logout-text { font-size: 13px; letter-spacing: 0.02em; }
 
 .hamburger {
-  display: none; /* se activa en mobile */
+  display: none;
   font-size: 1.6rem;
   background: none;
   border: none;
-  color: #f0c040;
+  color: var(--color-accent);
   cursor: pointer;
+  transition: transform var(--transition-fast);
 }
+.hamburger:active { transform: scale(0.9); }
 
 /* =======================
    LAYOUT: SIDEBAR + MAIN
@@ -142,14 +202,18 @@ img { max-width: 100%; height: auto; }
   overflow: hidden;
 }
 
+/* SIDEBAR — glassmorphism */
 .sidebar {
-  background-color: #1a1a1a;
-  color: #f0c040;
+  background: rgba(26, 26, 26, 0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--color-accent);
   width: 260px;
   flex: 0 0 260px;
   padding: 14px;
   overflow-y: auto;
-  box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+  box-shadow: 2px 0 8px rgba(0,0,0,0.3);
 }
 
 .sidebar-title {
@@ -167,18 +231,20 @@ img { max-width: 100%; height: auto; }
   gap: 10px;
   padding: 10px 10px;
   margin-bottom: 8px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   position: relative;
   cursor: pointer;
-  transition: background-color 0.15s ease, transform 0.15s ease;
+  transition: background-color var(--transition-fast), transform var(--transition-fast);
 }
 
 .obra-list li:hover {
-  background-color: #2c2c2c;
-  transform: translateX(3px);
+  background-color: var(--color-surface-2);
+  transform: translateX(4px);
 }
 
-.selected { background-color: #2c2c2c; }
+.obra-list li:active { transform: translateX(2px) scale(0.99); }
+
+.selected { background-color: var(--color-surface-2); }
 
 .active-indicator {
   position: absolute;
@@ -186,21 +252,26 @@ img { max-width: 100%; height: auto; }
   top: 8px;
   bottom: 8px;
   width: 4px;
-  background-color: #f0c040;
+  background-color: var(--color-accent);
   border-radius: 0 3px 3px 0;
+  /* animated entry */
+  animation: indicator-in 0.25s ease-out;
+}
+
+@keyframes indicator-in {
+  from { transform: scaleY(0); opacity: 0; }
+  to   { transform: scaleY(1); opacity: 1; }
 }
 
 .panel-central {
   flex: 1;
-  min-width: 0; /* ✅ clave para que no exploten tablas/charts */
+  min-width: 0;
   padding: 14px;
   overflow-y: auto;
 }
 
 /* overlay sidebar */
-.sidebar-overlay {
-  display: none;
-}
+.sidebar-overlay { display: none; }
 
 /* =======================
    UTIL: TABLAS RESPONSIVE
@@ -211,8 +282,45 @@ img { max-width: 100%; height: auto; }
   -webkit-overflow-scrolling: touch;
 }
 
-.table-wrapper table {
-  min-width: 900px;
+.table-wrapper table { min-width: 900px; }
+
+/* STICKY HEADERS globales */
+.table-wrapper thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+/* =======================
+   VIEW TRANSITIONS
+======================= */
+.view-fade-enter-active {
+  transition: opacity 0.22s ease-out, transform 0.24s ease-out;
+}
+.view-fade-leave-active {
+  transition: opacity 0.16s ease-in;
+}
+.view-fade-enter-from {
+  opacity: 0;
+  transform: translateY(7px);
+}
+.view-fade-leave-to {
+  opacity: 0;
+}
+
+/* =======================
+   SKELETON GLOBAL
+======================= */
+.sk {
+  background: linear-gradient(90deg, #2a2a2a 25%, #333 50%, #2a2a2a 75%);
+  background-size: 200% 100%;
+  animation: sk-shimmer 1.5s infinite;
+  border-radius: 6px;
+}
+
+@keyframes sk-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 /* =======================
@@ -242,9 +350,7 @@ img { max-width: 100%; height: auto; }
     align-items: center;
   }
 
-  .action-buttons-container {
-    justify-content: center;
-  }
+  .action-buttons-container { justify-content: center; }
 
   .sidebar {
     position: fixed;
@@ -252,7 +358,7 @@ img { max-width: 100%; height: auto; }
     left: 0;
     height: calc(100vh - 76px);
     transform: translateX(-110%);
-    transition: transform .2s ease;
+    transition: transform .22s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 90;
     width: 280px;
     flex: 0 0 280px;
@@ -268,7 +374,8 @@ img { max-width: 100%; height: auto; }
     right: 0;
     bottom: 0;
     z-index: 85;
-    background: rgba(0,0,0,0.45);
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(2px);
   }
 
   .panel-central { padding: 12px; }

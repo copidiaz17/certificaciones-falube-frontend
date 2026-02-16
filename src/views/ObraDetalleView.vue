@@ -1,52 +1,50 @@
 <template>
   <div class="obra-detalle-view">
-    <h2 class="titulo-obra" v-if="obra.nombre">
-      {{ obra.nombre }}
-    </h2>
+    <h2 class="titulo-obra" v-if="obra.nombre">{{ obra.nombre }}</h2>
 
     <div class="acciones-container">
-      <button
-        v-if="authStore.canModify"
-        @click="goToCargarPliego"
-        class="btn-primary btn-success btn-lg action-btn"
-      >
+      <button v-if="authStore.canModify" @click="goToCargarPliego"
+        class="btn-primary btn-success btn-lg action-btn">
         ➕ Cargar / Editar Ítems del Pliego
       </button>
-
-      <button
-        v-if="authStore.canModify"
-        @click="goToAddCertificacion"
-        class="btn-primary btn-warning btn-lg action-btn"
-      >
+      <button v-if="authStore.canModify" @click="goToAddCertificacion"
+        class="btn-primary btn-warning btn-lg action-btn">
         Agregar Certificación
       </button>
-
-      <button
-        v-if="authStore.canModify"
-        @click="goToAddAvanceObra"
-        class="btn-primary btn-dark btn-lg action-btn"
-      >
+      <button v-if="authStore.canModify" @click="goToAddAvanceObra"
+        class="btn-primary btn-dark btn-lg action-btn">
         ➕ Agregar Avance de Obra
       </button>
-
-      <button
-        v-if="itemsPliego.length > 0"
+      <button v-if="itemsPliego.length > 0"
         @click="$router.push({ name: 'VerPliego', params: { obraId: route.params.obraId } })"
-        class="btn-primary btn-info btn-lg action-btn"
-      >
+        class="btn-primary btn-info btn-lg action-btn">
         Ver Pliego Completo
       </button>
-
-      <button
-        v-if="authStore.canModify"
-        @click="goToProyeccionObra"
-        class="btn-primary btn-success btn-lg action-btn"
-      >
+      <button v-if="authStore.canModify" @click="goToProyeccionObra"
+        class="btn-primary btn-success btn-lg action-btn">
         Proyección de Obra
       </button>
     </div>
 
-    <div class="panel-avance">
+    <!-- SKELETON mientras carga -->
+    <div v-if="cargando" class="skeleton-wrap">
+      <div class="skeleton-card">
+        <div class="skeleton skeleton-title"></div>
+        <div class="skeleton skeleton-chart"></div>
+      </div>
+      <div class="skeleton-card">
+        <div class="skeleton skeleton-title"></div>
+        <div class="skeleton skeleton-line" v-for="n in 5" :key="n"></div>
+      </div>
+      <div class="skeleton-card">
+        <div class="skeleton skeleton-title"></div>
+        <div class="skeleton skeleton-bar" v-for="n in 4" :key="n"></div>
+      </div>
+    </div>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <div v-else class="panel-avance">
+
       <!-- CURVA -->
       <div class="panel panel-curva">
         <h3>Curva de Avance</h3>
@@ -58,7 +56,6 @@
       <!-- RESUMEN -->
       <div class="panel panel-resumen" v-if="resumenCurva.length > 0">
         <h3>Resumen de Curva</h3>
-
         <div class="table-wrapper">
           <table class="tabla-resumen">
             <thead>
@@ -73,23 +70,16 @@
                 <th>Desvío acum. (Real - Plan)</th>
               </tr>
             </thead>
-
             <tbody>
               <tr v-for="(r, idx) in resumenCurva" :key="idx">
                 <td class="col-periodo">{{ r.periodo }}</td>
-
                 <td class="td-plan">{{ formatPercent(r.planPer) }}</td>
                 <td class="td-plan td-sep-right">{{ formatPercent(r.planAc) }}</td>
-
                 <td class="td-cert">{{ formatPercent(r.certPer) }}</td>
                 <td class="td-cert td-sep-right">{{ formatPercent(r.certAc) }}</td>
-
                 <td class="td-real">{{ formatPercent(r.avPer) }}</td>
                 <td class="td-real td-sep-right">{{ formatPercent(r.avAc) }}</td>
-
-                <td :class="r.desvio >= 0 ? 'pos' : 'neg'">
-                  {{ formatPercent(r.desvio) }}
-                </td>
+                <td :class="r.desvio >= 0 ? 'pos' : 'neg'">{{ formatPercent(r.desvio) }}</td>
               </tr>
             </tbody>
           </table>
@@ -100,27 +90,23 @@
       <div class="panel panel-items">
         <h3>Avance certificado por Ítem (acumulado)</h3>
 
-        <div
-          v-for="item in avanceItems"
-          :key="item.pliego_item_id"
-          class="item-avance"
-        >
-          <div class="item-header">
-            <span>{{ item.descripcion }}</span>
-            <strong>{{ formatPercent(item.avance_acumulado) }}</strong>
-          </div>
-
-          <div class="barra">
-            <div
-              class="barra-progreso"
-              :style="{ width: (item.avance_acumulado || 0) + '%' }"
-            ></div>
+        <div v-if="avanceItems.length > 0">
+          <div v-for="item in avanceItems" :key="item.pliego_item_id" class="item-avance">
+            <div class="item-header">
+              <span>{{ item.descripcion }}</span>
+              <strong>{{ formatPercent(item.avance_acumulado) }}</strong>
+            </div>
+            <div class="barra">
+              <div class="barra-progreso"
+                :style="{ '--w': (item.avance_acumulado || 0) + '%' }"></div>
+            </div>
           </div>
         </div>
 
-        <p v-if="avanceItems.length === 0" class="text-muted">
-          No hay avances registrados
-        </p>
+        <div class="empty-state" v-else>
+          <span class="empty-icon">📊</span>
+          <p>No hay avances certificados registrados</p>
+        </div>
       </div>
 
       <!-- HISTORIAL CERTIFICACIONES -->
@@ -139,7 +125,6 @@
                 <th>Acciones</th>
               </tr>
             </thead>
-
             <tbody>
               <tr v-for="cert in certsHistorial" :key="cert.id">
                 <td>{{ cert.numero_certificado }}</td>
@@ -157,82 +142,14 @@
           </table>
         </div>
 
-        <p v-else class="text-muted">
-          No hay certificaciones registradas
-        </p>
-      </div>
-
-      <!-- HISTORIAL PLANIFICACIONES -->
-      <div class="panel panel-planificaciones">
-        <h3>Historial de Planificaciones</h3>
-
-        <div class="table-wrapper" v-if="planificacionesHistorial.length > 0">
-          <table class="tabla-certificaciones">
-            <thead>
-              <tr>
-                <th>Período Desde</th>
-                <th>Período Hasta</th>
-                <th>% Total Plan.</th>
-                <th v-if="authStore.canModify">Acciones</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              <tr v-for="planif in planificacionesHistorial" :key="planif.id">
-                <td>{{ formatDate(planif.fecha_desde) }}</td>
-                <td>{{ formatDate(planif.fecha_hasta) }}</td>
-                <td>{{ formatPercent(planif.total_porcentaje) }}</td>
-                <td v-if="authStore.canModify">
-                  <button class="btn-detalle btn-editar" @click="editarPlanificacion(planif.id)">
-                    Editar
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="empty-state" v-else>
+          <span class="empty-icon">📋</span>
+          <p>No hay certificaciones registradas</p>
+          <button v-if="authStore.canModify" class="btn-empty-action"
+            @click="goToAddCertificacion">Agregar primera certificación →</button>
         </div>
-
-        <p v-else class="text-muted">
-          No hay planificaciones registradas
-        </p>
       </div>
 
-      <!-- HISTORIAL AVANCES -->
-      <div class="panel panel-avances-hist">
-        <h3>Historial de Avances de Obra</h3>
-
-        <div class="table-wrapper" v-if="avancesHistorial.length > 0">
-          <table class="tabla-certificaciones">
-            <thead>
-              <tr>
-                <th>N° Avance</th>
-                <th>Fecha</th>
-                <th>Período</th>
-                <th>Avance Ponderado</th>
-                <th v-if="authStore.canModify">Acciones</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              <tr v-for="av in avancesHistorial" :key="av.id">
-                <td>{{ av.numero_avance }}</td>
-                <td>{{ formatDate(av.fecha_avance) }}</td>
-                <td>{{ formatPeriodo(av) }}</td>
-                <td>{{ formatPercent(av.avance_ponderado) }}</td>
-                <td v-if="authStore.canModify">
-                  <button class="btn-detalle btn-editar" @click="editarAvance(av.id)">
-                    Editar
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <p v-else class="text-muted">
-          No hay avances registrados
-        </p>
-      </div>
     </div>
   </div>
 </template>
@@ -256,14 +173,13 @@ export default {
 
   data() {
     return {
+      cargando: false,
       obra: {},
       itemsPliego: [],
       avanceItems: [],
       curvaChartInstance: null,
       certNumerosPorPeriodo: [],
       certsHistorial: [],
-      planificacionesHistorial: [],
-      avancesHistorial: [],
       financiero: [],
       financieroMontos: [],
       curvaLabels: [],
@@ -282,8 +198,6 @@ export default {
       );
     },
 
-    // ✅ RESUMEN HASTA FECHA ACTUAL: solo períodos cerrados (hasta < hoy)
-    // labels esperado: "YYYY-MM-DD → YYYY-MM-DD" (como lo estás usando)
     resumenCurva() {
       const labels = this.curvaLabels || [];
       const planA = this.curvaPlanAcum || [];
@@ -303,8 +217,7 @@ export default {
         return Number.isFinite(t) ? t : null;
       };
 
-      // último período cuyo "hasta" es anterior a hoy (periodo cerrado)
-      let lastIdx = 0; // incluye "Inicio"
+      let lastIdx = 0;
       for (let i = 1; i < labels.length; i++) {
         const hastaTime = parseHasta(labels[i]);
         if (hastaTime != null && hastaTime < hoyStart) lastIdx = i;
@@ -338,7 +251,6 @@ export default {
     },
   },
 
-  // ✅ FIX: al cambiar obraId recargar todo (Vue reutiliza componente)
   watch: {
     "route.params.obraId": {
       immediate: true,
@@ -351,12 +263,11 @@ export default {
 
   methods: {
     resetState() {
+      this.cargando = false;
       this.obra = {};
       this.itemsPliego = [];
       this.avanceItems = [];
       this.certsHistorial = [];
-      this.planificacionesHistorial = [];
-      this.avancesHistorial = [];
       this.curvaLabels = [];
       this.curvaPlanAcum = [];
       this.curvaCertAcum = [];
@@ -372,6 +283,7 @@ export default {
     },
 
     async fetchData() {
+      this.cargando = true;
       try {
         const obraId = this.route.params.obraId;
         if (!obraId) return;
@@ -386,13 +298,11 @@ export default {
 
         await this.cargarAvances();
         await this.cargarCurva();
-        await Promise.all([
-          this.cargarHistorialCertificaciones(),
-          this.cargarHistorialPlanificaciones(),
-          this.cargarHistorialAvances(),
-        ]);
+        await this.cargarHistorialCertificaciones();
       } catch (err) {
         console.error("Error cargando detalle de obra:", err);
+      } finally {
+        this.cargando = false;
       }
     },
 
@@ -402,7 +312,6 @@ export default {
         const res = await api.get(`/obras/${obraId}/items-certificados`);
         this.avanceItems = res.data || [];
       } catch (e) {
-        console.error("Error cargando items certificados:", e);
         this.avanceItems = [];
       }
     },
@@ -411,22 +320,13 @@ export default {
       const obraId = this.route.params.obraId;
       const res = await api.get(`/obras/${obraId}/curva-avance`);
 
-      const {
-        labels,
-        planificado,
-        certificado,
-        avance,
-        financiero,
-        financieroMontos,
-        certNumerosPorPeriodo,
-      } = res.data;
+      const { labels, planificado, certificado, avance, financiero, financieroMontos, certNumerosPorPeriodo } = res.data;
 
       if (!labels || labels.length === 0) return;
 
       this.certNumerosPorPeriodo = certNumerosPorPeriodo || [];
       this.financiero = financiero || [];
       this.financieroMontos = financieroMontos || [];
-
       this.curvaLabels = labels || [];
       this.curvaPlanAcum = planificado || [];
       this.curvaCertAcum = certificado || [];
@@ -441,42 +341,28 @@ export default {
       this.certsHistorial = res.data || [];
     },
 
-    // Corta después del último cambio (evita línea plana)
     cutAfterLastChange(series) {
       if (!Array.isArray(series) || series.length === 0) return [];
       const EPS = 0.0001;
-
-      const s = series.map((v) => {
-        const n = Number(v);
-        return Number.isFinite(n) ? n : 0;
-      });
-
-      let lastChange = 0;
-      let firstNonZero = -1;
-
+      const s = series.map((v) => { const n = Number(v); return Number.isFinite(n) ? n : 0; });
+      let lastChange = 0, firstNonZero = -1;
       for (let i = 0; i < s.length; i++) {
         if (firstNonZero === -1 && Math.abs(s[i]) > EPS) firstNonZero = i;
         if (i > 0 && Math.abs(s[i] - s[i - 1]) > EPS) lastChange = i;
       }
-
       let lastIdx = lastChange;
       if (lastIdx === 0 && firstNonZero > 0) lastIdx = firstNonZero;
-
       return s.map((v, i) => (i <= lastIdx ? v : null));
     },
 
     renderCurva(labels, planificado, certificado, avance, financiero) {
       if (!this.$refs.curvaChart) return;
-
-      if (this.curvaChartInstance) {
-        this.curvaChartInstance.destroy();
-      }
+      if (this.curvaChartInstance) this.curvaChartInstance.destroy();
 
       const self = this;
       const certPlot = this.cutAfterLastChange(certificado || []);
       const realPlot = this.cutAfterLastChange(avance || []);
 
-      // 1) Planificado: más grueso y transparente (al fondo)
       const dsPlan = {
         label: "Planificado",
         data: (planificado || []).map((v) => Number(v ?? 0)),
@@ -488,7 +374,6 @@ export default {
         order: 10,
       };
 
-      // 2) Certificado: medio
       const dsCert = {
         label: "Certificado",
         data: certPlot,
@@ -503,7 +388,6 @@ export default {
         order: 5,
       };
 
-      // 3) Real: arriba (más fino)
       const dsReal = {
         label: "Avance de Obra",
         data: realPlot,
@@ -520,7 +404,6 @@ export default {
 
       const datasets = [dsPlan, dsCert, dsReal];
 
-      // Financiero (solo admin)
       if (this.esAdmin && financiero && financiero.length) {
         datasets.push({
           label: "Avance financiero",
@@ -552,18 +435,14 @@ export default {
                   const idx = context.dataIndex;
 
                   if (labelBase === "Certificado") {
-                    const numsArr =
-                      (self.certNumerosPorPeriodo && self.certNumerosPorPeriodo[idx]) || [];
+                    const numsArr = (self.certNumerosPorPeriodo && self.certNumerosPorPeriodo[idx]) || [];
                     const numText = numsArr.length ? ` (N° ${numsArr.join(", ")})` : "";
                     return `${labelBase}${numText}: ${value.toFixed(2)}%`;
                   }
 
                   if (labelBase === "Avance financiero") {
                     const monto = (self.financieroMontos && self.financieroMontos[idx]) || 0;
-                    const montoStr = Number(monto).toLocaleString("es-AR", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    });
+                    const montoStr = Number(monto).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                     return `${labelBase}: ${value.toFixed(2)}% - $${montoStr}`;
                   }
 
@@ -599,12 +478,10 @@ export default {
     },
 
     verDetalleCert(certId) {
-      // ✅ Solo administrador navega
       if (!this.esAdmin) {
         this.toast.warning("Solo un administrador puede ver el detalle de la certificación");
         return;
       }
-
       this.$router.push({
         name: "DetalleCertificacion",
         params: { obraId: this.route.params.obraId, certId },
@@ -612,67 +489,19 @@ export default {
     },
 
     goToCargarPliego() {
-      this.$router.push({
-        name: "CargarPliego",
-        params: { obraId: this.route.params.obraId },
-      });
+      this.$router.push({ name: "CargarPliego", params: { obraId: this.route.params.obraId } });
     },
 
     goToAddCertificacion() {
-      this.$router.push({
-        name: "AddCertificacion",
-        params: { obraId: this.route.params.obraId },
-      });
+      this.$router.push({ name: "AddCertificacion", params: { obraId: this.route.params.obraId } });
     },
 
     goToAddAvanceObra() {
-      this.$router.push({
-        name: "AddAvanceObra",
-        params: { obraId: this.route.params.obraId },
-      });
+      this.$router.push({ name: "AddAvanceObra", params: { obraId: this.route.params.obraId } });
     },
 
     goToProyeccionObra() {
-      this.$router.push({
-        name: "ProyeccionObra",
-        params: { obraId: this.route.params.obraId },
-      });
-    },
-
-    async cargarHistorialPlanificaciones() {
-      const obraId = this.route.params.obraId;
-      try {
-        const res = await api.get(`/obras/${obraId}/planificaciones`);
-        this.planificacionesHistorial = res.data || [];
-      } catch (e) {
-        console.error("Error cargando historial de planificaciones:", e);
-        this.planificacionesHistorial = [];
-      }
-    },
-
-    async cargarHistorialAvances() {
-      const obraId = this.route.params.obraId;
-      try {
-        const res = await api.get(`/obras/${obraId}/avances`);
-        this.avancesHistorial = res.data || [];
-      } catch (e) {
-        console.error("Error cargando historial de avances:", e);
-        this.avancesHistorial = [];
-      }
-    },
-
-    editarPlanificacion(planifId) {
-      this.$router.push({
-        name: "EditarPlanificacion",
-        params: { obraId: this.route.params.obraId, planifId },
-      });
-    },
-
-    editarAvance(avanceId) {
-      this.$router.push({
-        name: "EditarAvance",
-        params: { obraId: this.route.params.obraId, avanceId },
-      });
+      this.$router.push({ name: "ProyeccionObra", params: { obraId: this.route.params.obraId } });
     },
   },
 };
@@ -692,6 +521,44 @@ export default {
 
 .action-btn { width: auto !important; flex: 0 0 auto; }
 
+/* ========================
+   SKELETON LOADING
+======================== */
+.skeleton-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.skeleton-card {
+  background: #1a1a1a;
+  border-radius: 10px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #2a2a2a 25%, #333 50%, #2a2a2a 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 6px;
+}
+
+.skeleton-title { height: 22px; width: 40%; }
+.skeleton-chart { height: 280px; width: 100%; }
+.skeleton-line { height: 16px; width: 100%; }
+.skeleton-bar { height: 20px; width: 100%; border-radius: 999px; }
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ========================
+   PANEL LAYOUT
+======================== */
 .panel-avance {
   display: flex;
   flex-direction: column;
@@ -706,6 +573,15 @@ export default {
   border: 1px solid #9ca3af;
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.15);
   min-width: 0;
+  /* Animación de entrada */
+  transition: opacity 0.35s ease-out, transform 0.35s ease-out;
+}
+
+@starting-style {
+  .panel {
+    opacity: 0;
+    transform: translateY(10px);
+  }
 }
 
 .panel-curva { min-height: 320px; }
@@ -717,13 +593,19 @@ export default {
   min-width: 0;
 }
 
-/* ✅ wrappers para tablas (responsive real) */
 .table-wrapper {
   width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
 .table-wrapper table { min-width: 900px; }
+
+/* STICKY HEADERS */
+.table-wrapper thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
 
 /* RESUMEN */
 .panel-resumen {
@@ -807,9 +689,14 @@ export default {
 
 .barra-progreso {
   height: 100%;
-  background: #22c55e;
-  box-shadow: 0 0 10px rgba(34, 197, 94, 0.9);
-  transition: width 0.4s ease;
+  width: var(--w, 0%);
+  background: linear-gradient(90deg, #16a34a, #22c55e);
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.7);
+  animation: grow-bar 1.1s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes grow-bar {
+  from { width: 0 !important; }
 }
 
 /* CERTIFICACIONES */
@@ -846,37 +733,51 @@ export default {
   border-radius: 999px;
   cursor: pointer;
   font-weight: 700;
+  transition: filter 0.15s ease, transform 0.1s ease;
 }
 
-.btn-editar {
-  background: #f59e0b;
-  color: #1c1917;
+.btn-detalle:hover { filter: brightness(1.15); }
+.btn-detalle:active { transform: scale(0.96); }
+
+/* EMPTY STATE */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px 16px;
+  color: #9ca3af;
 }
 
-/* PLANIFICACIONES */
-.panel-planificaciones {
-  margin-top: 10px;
-  background: #020617;
-  border: 1px solid #3b82f6;
-  color: #e5e7eb;
+.empty-icon { font-size: 2.5rem; }
+
+.empty-state p {
+  margin: 0;
+  font-size: 0.95rem;
 }
 
-/* AVANCES HISTORIAL */
-.panel-avances-hist {
-  margin-top: 10px;
-  background: #020617;
-  border: 1px solid #ef4444;
-  color: #e5e7eb;
+.btn-empty-action {
+  margin-top: 6px;
+  padding: 6px 14px;
+  background: none;
+  border: 1px solid #22c55e;
+  color: #22c55e;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background 0.2s ease;
+}
+
+.btn-empty-action:hover {
+  background: rgba(34, 197, 94, 0.12);
 }
 
 .text-muted { color: #9ca3af; font-size: 0.9rem; }
 
-/* ✅ mobile */
 @media (max-width: 900px) {
   .obra-detalle-view { padding: 12px; }
   .titulo-obra { font-size: 1.4rem; }
   .chart-wrap { height: 280px; }
   .panel { padding: 12px; }
 }
-
 </style>

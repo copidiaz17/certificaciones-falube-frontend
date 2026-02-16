@@ -3,13 +3,8 @@
     <h2 class="titulo">{{ editMode ? "Editar Planificación" : "Planificación de Obra" }}</h2>
 
     <!-- MENSAJES -->
-    <div v-if="mensaje" class="mensaje-exito">
-      {{ mensaje }}
-    </div>
-
-    <div v-if="error" class="mensaje-error">
-      {{ error }}
-    </div>
+    <div v-if="mensaje" class="mensaje-exito">{{ mensaje }}</div>
+    <div v-if="error" class="mensaje-error">{{ error }}</div>
 
     <!-- CABECERA -->
     <div class="cabecera-cert">
@@ -17,7 +12,6 @@
         <label>Desde</label>
         <input type="date" v-model="periodo.desde" />
       </div>
-
       <div class="campo">
         <label>Hasta</label>
         <input type="date" v-model="periodo.hasta" />
@@ -36,12 +30,8 @@
           <th>% Planificado</th>
         </tr>
       </thead>
-
       <tbody>
-        <tr
-          v-for="item in items"
-          :key="item.pliego_item_id"
-        >
+        <tr v-for="item in items" :key="item.pliego_item_id">
           <td>{{ item.numeroItem }}</td>
           <td>{{ item.descripcion }}</td>
           <td>{{ item.unidad }}</td>
@@ -58,22 +48,61 @@
             />
           </td>
         </tr>
-
         <tr v-if="items.length === 0">
-          <td colspan="6" class="sin-items">
-            No hay ítems disponibles para planificar
-          </td>
+          <td colspan="6" class="sin-items">No hay ítems disponibles para planificar</td>
         </tr>
       </tbody>
     </table>
 
-    <button
-      class="btn-guardar"
-      @click="guardar"
-      :disabled="guardando"
-    >
+    <button class="btn-guardar" @click="guardar" :disabled="guardando">
       {{ guardando ? "Guardando..." : (editMode ? "Actualizar Planificación" : "Guardar Planificación") }}
     </button>
+
+    <!-- HISTORIAL DE PLANIFICACIONES -->
+    <div class="historial-panel">
+      <h3 class="historial-titulo">Historial de Planificaciones</h3>
+
+      <div v-if="cargandoHistorial" class="historial-skeleton">
+        <div class="skel-row" v-for="n in 3" :key="n"></div>
+      </div>
+
+      <div v-else-if="historial.length === 0" class="historial-empty">
+        <span>📅</span>
+        <p>No hay planificaciones registradas aún</p>
+      </div>
+
+      <div v-else class="historial-table-wrap">
+        <table class="historial-table">
+          <thead>
+            <tr>
+              <th>Período Desde</th>
+              <th>Período Hasta</th>
+              <th>% Total Plan.</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="planif in historial" :key="planif.id"
+              :class="{ 'fila-activa': planifId && planif.id == planifId }">
+              <td>{{ formatDate(planif.fecha_desde) }}</td>
+              <td>{{ formatDate(planif.fecha_hasta) }}</td>
+              <td>{{ formatPercent(planif.total_porcentaje) }}</td>
+              <td>
+                <button
+                  class="btn-hist-editar"
+                  @click="editarPlanificacion(planif.id)"
+                  :disabled="planifId && planif.id == planifId"
+                  :title="planifId && planif.id == planifId ? 'Estás editando esta planificación' : ''"
+                >
+                  {{ planifId && planif.id == planifId ? "✏️ Editando" : "Editar" }}
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -86,30 +115,59 @@ export default {
   data() {
     return {
       editMode: false,
-      periodo: {
-        desde: "",
-        hasta: "",
-      },
+      periodo: { desde: "", hasta: "" },
       items: [],
       mensaje: "",
       error: "",
       guardando: false,
+      historial: [],
+      cargandoHistorial: false,
     };
+  },
+
+  watch: {
+    planifId(newId) {
+      if (newId) {
+        this.editMode = true;
+        this.cargarPlanificacionExistente();
+      } else {
+        this.editMode = false;
+        this.cargarPliego();
+      }
+    },
   },
 
   methods: {
     mostrar(n) {
-      return Number(n).toLocaleString("es-AR", {
-        minimumFractionDigits: 2,
-      });
+      return Number(n).toLocaleString("es-AR", { minimumFractionDigits: 2 });
+    },
+
+    formatDate(dateStr) {
+      if (!dateStr) return "";
+      const d = new Date(dateStr);
+      return isNaN(d) ? dateStr : d.toLocaleDateString("es-AR");
+    },
+
+    formatPercent(value) {
+      return `${Number(value || 0).toFixed(2)}%`;
+    },
+
+    async cargarHistorial() {
+      this.cargandoHistorial = true;
+      try {
+        const res = await api.get(`/obras/${this.obraId}/planificaciones`);
+        this.historial = res.data || [];
+      } catch (e) {
+        console.error("Error cargando historial de planificaciones:", e);
+        this.historial = [];
+      } finally {
+        this.cargandoHistorial = false;
+      }
     },
 
     async cargarPliego() {
       try {
-        const res = await api.get(
-          `/obras/${this.obraId}/items-disponible-planificacion`
-        );
-
+        const res = await api.get(`/obras/${this.obraId}/items-disponible-planificacion`);
         this.items = res.data.map(it => ({
           pliego_item_id: it.id,
           numeroItem: it.numeroItem,
@@ -133,15 +191,9 @@ export default {
         ]);
 
         const planifData = planifRes.data;
+        this.periodo.desde = planifData.fecha_desde ? planifData.fecha_desde.split("T")[0] : "";
+        this.periodo.hasta = planifData.fecha_hasta ? planifData.fecha_hasta.split("T")[0] : "";
 
-        this.periodo.desde = planifData.fecha_desde
-          ? planifData.fecha_desde.split("T")[0]
-          : "";
-        this.periodo.hasta = planifData.fecha_hasta
-          ? planifData.fecha_hasta.split("T")[0]
-          : "";
-
-        // Mapa de ítems disponibles
         const disponiblesMap = {};
         (disponiblesRes.data || []).forEach((it) => {
           disponiblesMap[it.id] = {
@@ -155,7 +207,6 @@ export default {
           };
         });
 
-        // Fusionar con los ítems existentes de la planificación
         (planifData.items || []).forEach((ei) => {
           const pid = ei.pliego_item_id;
           const porcentaje = Number(ei.porcentaje_planificado || 0);
@@ -192,23 +243,19 @@ export default {
         this.error = "Debe indicar fecha desde y hasta";
         return false;
       }
-
       if (this.periodo.desde > this.periodo.hasta) {
         this.error = "La fecha desde no puede ser mayor que la fecha hasta";
         return false;
       }
-
       return true;
     },
 
     async guardar() {
       this.mensaje = "";
       this.error = "";
-
       if (!this.validarPeriodo()) return;
 
       this.guardando = true;
-
       const payload = {
         fecha_desde: this.periodo.desde,
         fecha_hasta: this.periodo.hasta,
@@ -222,30 +269,31 @@ export default {
 
       try {
         if (this.editMode) {
-          await api.put(
-            `/obras/${this.obraId}/planificacion/${this.planifId}`,
-            payload
-          );
+          await api.put(`/obras/${this.obraId}/planificacion/${this.planifId}`, payload);
           this.mensaje = "Planificación actualizada correctamente";
         } else {
-          await api.post(
-            `/obras/${this.obraId}/planificacion`,
-            payload
-          );
+          await api.post(`/obras/${this.obraId}/planificacion`, payload);
           this.mensaje = "Planificación guardada correctamente";
         }
+
+        await this.cargarHistorial();
 
         setTimeout(() => {
           this.$router.back();
         }, 1500);
-
       } catch (err) {
-        console.error(err.response?.data || err);
         const msg = err.response?.data?.message || "Error al guardar la planificación";
         this.error = msg;
       } finally {
         this.guardando = false;
       }
+    },
+
+    editarPlanificacion(planifId) {
+      this.$router.push({
+        name: "EditarPlanificacion",
+        params: { obraId: this.obraId, planifId },
+      });
     },
   },
 
@@ -256,6 +304,7 @@ export default {
     } else {
       this.cargarPliego();
     }
+    this.cargarHistorial();
   },
 };
 </script>
@@ -267,10 +316,7 @@ export default {
   margin-bottom: 16px;
 }
 
-.campo {
-  display: flex;
-  flex-direction: column;
-}
+.campo { display: flex; flex-direction: column; }
 
 .mensaje-exito {
   background: #e6f4ea;
@@ -290,9 +336,7 @@ export default {
   font-weight: 600;
 }
 
-.input-porcentaje {
-  width: 90px;
-}
+.input-porcentaje { width: 90px; }
 
 .sin-items {
   text-align: center;
@@ -304,4 +348,117 @@ export default {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* ========================
+   HISTORIAL PANEL
+======================== */
+.historial-panel {
+  margin-top: 32px;
+  background: #020617;
+  border: 1px solid #3b82f6;
+  border-radius: 10px;
+  padding: 16px;
+  color: #e5e7eb;
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+}
+
+@starting-style {
+  .historial-panel {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+.historial-titulo {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #93c5fd;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 14px;
+}
+
+.historial-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.historial-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  min-width: 500px;
+}
+
+.historial-table th,
+.historial-table td {
+  border: 1px solid #374151;
+  padding: 8px 10px;
+  text-align: center;
+}
+
+.historial-table thead th {
+  background: linear-gradient(90deg, #1d4ed8, #3b82f6);
+  color: #f9fafb;
+  font-weight: 700;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.historial-table tbody tr:nth-child(odd) { background: #0b1120; }
+.historial-table tbody tr:nth-child(even) { background: #020617; }
+
+.fila-activa {
+  outline: 2px solid #f59e0b;
+  outline-offset: -2px;
+}
+
+.btn-hist-editar {
+  padding: 4px 12px;
+  background: #f59e0b;
+  color: #1c1917;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.8rem;
+  transition: filter 0.15s ease, transform 0.1s ease;
+}
+
+.btn-hist-editar:hover:not(:disabled) { filter: brightness(1.15); }
+.btn-hist-editar:active:not(:disabled) { transform: scale(0.96); }
+.btn-hist-editar:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* SKELETON */
+.historial-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.skel-row {
+  height: 36px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #1a2744 25%, #1e3060 50%, #1a2744 75%);
+  background-size: 200% 100%;
+  animation: shimmer-hist 1.5s infinite;
+}
+
+@keyframes shimmer-hist {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.historial-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 24px;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+.historial-empty span { font-size: 2rem; }
+.historial-empty p { margin: 0; }
 </style>
