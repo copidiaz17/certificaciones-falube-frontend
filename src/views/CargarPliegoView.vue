@@ -63,12 +63,17 @@
                     </div>
                     
                     <div class="col-md-5">
-                        <label class="form-label">Costo Parcial Calculado ($):</label>
-                        <input 
-                            type="text" 
-                            :value="formatNumber(costoParcial)" 
-                            class="input-control bg-dark" 
-                            readonly
+                        <label class="form-label">Costo Parcial ($):</label>
+                        <input
+                            type="text"
+                            :value="costoParcialFocused
+                                ? String(form.costoParcial).replace('.', ',')
+                                : formatNumber(form.costoParcial)"
+                            @input="form.costoParcial = parseNumber($event.target.value)"
+                            @focus="costoParcialFocused = true"
+                            @blur="costoParcialFocused = false"
+                            class="input-control"
+                            required
                         >
                     </div>
                 </div>
@@ -196,21 +201,34 @@ export default {
                 unidadMedida: '',
                 cantidad: 0,
                 costoUnitario: 0,
+                costoParcial: 0,
                 ItemGeneralId: null
             },
             mensaje: '',
             error: '',
-            costoUnitarioFocused: false
+            costoUnitarioFocused: false,
+            costoParcialFocused: false
         };
     },
 
-    computed: {
-        costoParcial() {
-            const cantidad = parseFloat(this.form.cantidad) || 0;
-            const unitario = parseFloat(this.form.costoUnitario) || 0;
-            return cantidad * unitario;
+    watch: {
+        'form.cantidad'(val) {
+            if (!this.costoParcialFocused) {
+                const cantidad = parseFloat(val) || 0;
+                const unitario = parseFloat(this.form.costoUnitario) || 0;
+                this.form.costoParcial = parseFloat((cantidad * unitario).toFixed(2));
+            }
         },
+        'form.costoUnitario'(val) {
+            if (!this.costoParcialFocused) {
+                const cantidad = parseFloat(this.form.cantidad) || 0;
+                const unitario = parseFloat(val) || 0;
+                this.form.costoParcial = parseFloat((cantidad * unitario).toFixed(2));
+            }
+        }
+    },
 
+    computed: {
         costoTotal() {
             return this.itemsPliego.reduce((sum, item) => sum + Number(item.costoParcial || 0), 0);
         },
@@ -303,6 +321,7 @@ export default {
             this.form.unidadMedida = item.ItemGeneral?.unidadMedida || item.unidadMedida || '';
             this.form.cantidad = Number(item.cantidad) || 0;
             this.form.costoUnitario = Number(item.costoUnitario) || 0;
+            this.form.costoParcial = Number(item.costoParcial) || 0;
 
             // foco en el input costo unitario para visual
             this.costoUnitarioFocused = true;
@@ -340,7 +359,7 @@ export default {
                 unidadMedida: this.form.unidadMedida,
                 cantidad: this.form.cantidad,
                 costoUnitario: this.form.costoUnitario,
-                costoParcial: this.costoParcial,
+                costoParcial: this.form.costoParcial,
                 ItemGeneralId: this.form.ItemGeneralId ? parseInt(this.form.ItemGeneralId) : null
             };
 
@@ -356,7 +375,7 @@ export default {
                 // reset
                 this.editMode = false;
                 this.editId = null;
-                this.form = { numeroItem: '', descripcionItem: '', unidadMedida: '', cantidad: 0, costoUnitario: 0, ItemGeneralId: null };
+                this.form = { numeroItem: '', descripcionItem: '', unidadMedida: '', cantidad: 0, costoUnitario: 0, costoParcial: 0, ItemGeneralId: null };
 
                 await this.fetchItemsPliego();
 
