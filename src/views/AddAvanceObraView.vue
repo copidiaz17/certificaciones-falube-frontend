@@ -291,8 +291,8 @@ export default {
     },
 
     async guardarAvance() {
-      if (!this.avance.numero_avance || !this.avance.fecha_avance) {
-        this.toast.warning("Completá N° de avance y Fecha.");
+      if (!this.avance.numero_avance || !this.avance.fecha_avance || !this.avance.periodo_desde || !this.avance.periodo_hasta) {
+        this.toast.warning("Completá N° de avance, Fecha, Periodo Desde y Periodo Hasta.");
         return;
       }
 
