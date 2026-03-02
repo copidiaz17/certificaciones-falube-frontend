@@ -382,6 +382,7 @@ export default {
       const self = this;
       const certPlot = this.cutAfterLastChange(certificado || []);
       const realPlot = this.cutAfterLastChange(avance || []);
+      const financieroPlot = this.cutAfterLastChange(financiero || []);
 
       const dsPlan = {
         label: "Planificado",
@@ -427,7 +428,7 @@ export default {
       if (this.esAdmin && financiero && financiero.length) {
         datasets.push({
           label: "Avance financiero",
-          data: (financiero || []).map((v) => Number(v ?? 0)),
+          data: financieroPlot,
           borderColor: "rgba(168, 85, 247, 0.95)",
           borderWidth: 5,
           tension: 0.25,
