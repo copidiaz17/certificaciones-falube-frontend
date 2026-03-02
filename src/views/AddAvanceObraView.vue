@@ -10,15 +10,15 @@
       </div>
       <div class="campo">
         <label>Fecha de Avance</label>
-        <input type="date" v-model="avance.fecha_avance" />
+        <input type="date" v-model="avance.fecha_avance" min="2000-01-01" max="2099-12-31" />
       </div>
       <div class="campo">
         <label>Periodo Desde</label>
-        <input type="date" v-model="avance.periodo_desde" />
+        <input type="date" v-model="avance.periodo_desde" min="2000-01-01" max="2099-12-31" />
       </div>
       <div class="campo">
         <label>Periodo Hasta</label>
-        <input type="date" v-model="avance.periodo_hasta" />
+        <input type="date" v-model="avance.periodo_hasta" min="2000-01-01" max="2099-12-31" />
       </div>
     </div>
 
@@ -293,6 +293,14 @@ export default {
     async guardarAvance() {
       if (!this.avance.numero_avance || !this.avance.fecha_avance || !this.avance.periodo_desde || !this.avance.periodo_hasta) {
         this.toast.warning("Completá N° de avance, Fecha, Periodo Desde y Periodo Hasta.");
+        return;
+      }
+      const fechasValidas = [this.avance.fecha_avance, this.avance.periodo_desde, this.avance.periodo_hasta].every(f => {
+        const year = parseInt((f || "").split("-")[0]);
+        return year >= 2000 && year <= 2099;
+      });
+      if (!fechasValidas) {
+        this.toast.warning("Las fechas tienen un año inválido. Verificá que el año sea correcto (ej: 2025).");
         return;
       }
 
