@@ -136,6 +136,7 @@
 
     <div class="acciones-pdf">
       <button class="btn-pdf" @click="exportarPDF" v-if="items.length">📄 Exportar PDF</button>
+      <button class="btn-editar" @click="irAEditar">✏️ Editar</button>
       <button class="btn-volver" @click="$router.back()">Volver</button>
     </div>
   </div>
@@ -145,10 +146,16 @@
 import api from "../config/axios.Config.js";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { useRouter } from "vue-router";
 
 export default {
   name: "CertificacionDetalleView",
-  props: ["certId"],
+  props: ["obraId", "certId"],
+
+  setup() {
+    const router = useRouter();
+    return { router };
+  },
   data() {
     return {
       certificado: {
@@ -189,6 +196,13 @@ export default {
     },
   },
   methods: {
+    irAEditar() {
+      this.router.push({
+        name: "EditarCertificacion",
+        params: { obraId: this.obraId, certId: this.certId },
+      });
+    },
+
     async cargarDetalle() {
       try {
         const res = await api.get(
@@ -496,6 +510,20 @@ export default {
   letter-spacing: 0.06em;
 }
 .btn-pdf:hover { background: #15803d; }
+
+.btn-editar {
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: none;
+  background: #1d4ed8;
+  color: #eff6ff;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.btn-editar:hover { background: #1e40af; }
 
 /* Botón volver en la misma línea de verde */
 .btn-volver {
