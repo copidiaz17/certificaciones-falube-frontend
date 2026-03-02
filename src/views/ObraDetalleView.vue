@@ -375,7 +375,7 @@ export default {
 
       const dsPlan = {
         label: "Planificado",
-        data: (planificado || []).map((v) => Number(v ?? 0)),
+        data: (planificado || []).map((v) => v == null ? null : Number(v)),
         borderColor: "rgba(56, 189, 248, 0.25)",
         borderWidth: 16,
         tension: 0.28,
