@@ -205,13 +205,15 @@ export default {
       if (!labels.length) return [];
 
       // Rellenar hacia adelante los null del plan (períodos extra post-planificación)
-      // para que el cuadro resumen siga mostrando el 100% planificado y el desvío correcto.
-      // El gráfico sigue usando curvaPlanAcum con null para cortar la línea visualmente.
+      // El gráfico corta la línea con null; la tabla necesita el último valor conocido.
+      const planRaw = this.curvaPlanAcum || [];
+      const planA = [];
       let lastKnownPlan = 0;
-      const planA = (this.curvaPlanAcum || []).map((v) => {
-        if (v != null) { lastKnownPlan = Number(v); return lastKnownPlan; }
-        return lastKnownPlan;
-      });
+      for (let j = 0; j < planRaw.length; j++) {
+        const v = planRaw[j];
+        if (v !== null && v !== undefined) lastKnownPlan = Number(v);
+        planA.push(lastKnownPlan);
+      }
 
       const hoy = new Date();
       const hoyStart = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()).getTime();
