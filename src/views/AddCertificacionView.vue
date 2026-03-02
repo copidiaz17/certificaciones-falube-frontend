@@ -11,17 +11,17 @@
 
       <div class="campo">
         <label>Fecha de Emisión</label>
-        <input type="date" v-model="cert.fecha_certificacion" />
+        <input type="date" v-model="cert.fecha_certificacion" min="2000-01-01" max="2099-12-31" />
       </div>
 
       <div class="campo">
         <label>Periodo Desde</label>
-        <input type="date" v-model="cert.periodo_desde" />
+        <input type="date" v-model="cert.periodo_desde" min="2000-01-01" max="2099-12-31" />
       </div>
 
       <div class="campo">
         <label>Periodo Hasta</label>
-        <input type="date" v-model="cert.periodo_hasta" />
+        <input type="date" v-model="cert.periodo_hasta" min="2000-01-01" max="2099-12-31" />
       </div>
 
       <!-- Badge de repartición (normalizado) -->
@@ -397,6 +397,22 @@ export default {
     },
 
     async guardarCertificacion() {
+      // Validar campos requeridos
+      if (!this.cert.numero_certificado || !this.cert.fecha_certificacion || !this.cert.periodo_desde || !this.cert.periodo_hasta) {
+        this.toast.warning("Completá N° de certificado, Fecha de Emisión, Periodo Desde y Periodo Hasta.");
+        return;
+      }
+
+      // Validar que los años sean razonables (evita typos como 20225)
+      const fechasValidas = [this.cert.fecha_certificacion, this.cert.periodo_desde, this.cert.periodo_hasta].every(f => {
+        const year = parseInt((f || "").split("-")[0]);
+        return year >= 2000 && year <= 2099;
+      });
+      if (!fechasValidas) {
+        this.toast.warning("Las fechas tienen un año inválido. Verificá que el año sea correcto (ej: 2025).");
+        return;
+      }
+
       try {
         const payload = {
           numero_certificado: this.cert.numero_certificado,
