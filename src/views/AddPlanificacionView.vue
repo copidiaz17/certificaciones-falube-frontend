@@ -16,6 +16,16 @@
         <label>Hasta</label>
         <input type="date" v-model="periodo.hasta" />
       </div>
+      <div class="campo campo-replanteo">
+        <label class="label-toggle">
+          <input type="checkbox" v-model="esReplanteo" />
+          <span>Es Replanteo</span>
+        </label>
+        <select v-if="esReplanteo" v-model="motivo" class="select-motivo">
+          <option value="tiempo">Solo cambio de plazo</option>
+          <option value="adicional_item">Con ítems adicionales</option>
+        </select>
+      </div>
     </div>
 
     <!-- GRILLA -->
@@ -77,6 +87,7 @@
             <tr>
               <th>Período Desde</th>
               <th>Período Hasta</th>
+              <th>Tipo</th>
               <th>% Pond. Período</th>
               <th>% Pond. Acum.</th>
               <th>Acciones</th>
@@ -87,6 +98,11 @@
               :class="{ 'fila-activa': planifId && planif.id == planifId }">
               <td>{{ formatDate(planif.fecha_desde) }}</td>
               <td>{{ formatDate(planif.fecha_hasta) }}</td>
+              <td>
+                <span :class="planif.tipo === 'replanteo' ? 'badge-replanteo' : 'badge-original'">
+                  {{ planif.tipo === 'replanteo' ? 'Replanteo' : 'Original' }}
+                </span>
+              </td>
               <td>{{ formatPercent(planif.total_porcentaje) }}</td>
               <td :class="planif.total_porcentaje_acum >= 99.9 ? 'td-completo' : ''">
                 {{ formatPercent(planif.total_porcentaje_acum) }}
@@ -129,6 +145,8 @@ export default {
       guardando: false,
       historial: [],
       cargandoHistorial: false,
+      esReplanteo: false,
+      motivo: "tiempo",
     };
   },
 
@@ -266,6 +284,8 @@ export default {
       const payload = {
         fecha_desde: this.periodo.desde,
         fecha_hasta: this.periodo.hasta,
+        tipo: this.esReplanteo ? "replanteo" : "original",
+        motivo: this.esReplanteo ? this.motivo : null,
         items: this.items
           .filter(i => i.porcentaje_planificado > 0)
           .map(i => ({
@@ -374,9 +394,59 @@ export default {
   display: flex;
   gap: 20px;
   margin-bottom: 16px;
+  flex-wrap: wrap;
+  align-items: flex-start;
 }
 
 .campo { display: flex; flex-direction: column; }
+
+.campo-replanteo {
+  gap: 8px;
+}
+
+.label-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #f59e0b;
+}
+
+.label-toggle input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.select-motivo {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #374151;
+  background: #0b1120;
+  color: #e5e7eb;
+  font-size: 0.9rem;
+}
+
+.badge-original {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.badge-replanteo {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(251, 146, 60, 0.2);
+  color: #fb923c;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
 
 .mensaje-exito {
   background: #e6f4ea;

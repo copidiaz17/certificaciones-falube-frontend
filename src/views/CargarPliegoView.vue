@@ -49,19 +49,19 @@
 
                     <div class="col-md-4">
                         <label class="form-label">Costo Unitario ($):</label>
-                        <input 
-                            type="text" 
-                            :value="costoUnitarioFocused 
-                                ? String(form.costoUnitario).replace('.', ',') 
+                        <input
+                            type="text"
+                            :value="costoUnitarioFocused
+                                ? String(form.costoUnitario).replace('.', ',')
                                 : formatNumber(form.costoUnitario)"
                             @input="form.costoUnitario = parseNumber($event.target.value)"
                             @focus="costoUnitarioFocused = true"
                             @blur="costoUnitarioFocused = false"
-                            class="input-control" 
+                            class="input-control"
                             required
                         >
                     </div>
-                    
+
                     <div class="col-md-5">
                         <label class="form-label">Costo Parcial ($):</label>
                         <input
@@ -73,7 +73,21 @@
                         >
                     </div>
                 </div>
-                
+
+                <div class="form-group-row">
+                    <div class="col-md-3">
+                        <label class="form-label">Origen:</label>
+                        <select v-model="form.origen" class="input-control">
+                            <option value="original">Original</option>
+                            <option value="adicional">Adicional</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4" v-if="form.origen === 'adicional'">
+                        <label class="form-label">Fecha de incorporación:</label>
+                        <input type="date" v-model="form.fecha_incorporacion" class="input-control">
+                    </div>
+                </div>
+
                 <button type="submit" class="btn-primary btn-success mt-3">
                     {{ editMode ? "Actualizar Item" : "Guardar Item al Pliego" }}
                 </button>
@@ -103,7 +117,10 @@
                 <tbody>
                     <tr v-for="item in itemsPliego" :key="item.id">
                         <td>{{ item.numeroItem }}</td>
-                        <td>{{ item.ItemGeneral?.nombre || item.descripcionItem }}</td>
+                        <td>
+                            {{ item.ItemGeneral?.nombre || item.descripcionItem }}
+                            <span v-if="item.origen === 'adicional'" class="badge-adicional">Adicional</span>
+                        </td>
                         <td>{{ item.ItemGeneral?.unidadMedida || item.unidadMedida }}</td>
                         <td>{{ item.cantidad }}</td>
                         <td>${{ formatNumber(item.costoUnitario) }}</td>
@@ -198,7 +215,9 @@ export default {
                 cantidad: 0,
                 costoUnitario: 0,
                 costoParcial: 0,
-                ItemGeneralId: null
+                ItemGeneralId: null,
+                origen: 'original',
+                fecha_incorporacion: null
             },
             mensaje: '',
             error: '',
@@ -321,6 +340,8 @@ export default {
             this.form.costoParcial = Number(item.costoParcial) || 0;
             this.costoParcialStr = this.formatNumber(Number(item.costoParcial) || 0);
             this.costoParcialManual = true;
+            this.form.origen = item.origen || 'original';
+            this.form.fecha_incorporacion = item.fecha_incorporacion || null;
 
             // foco en el input costo unitario para visual
             this.costoUnitarioFocused = true;
@@ -359,7 +380,9 @@ export default {
                 cantidad: this.form.cantidad,
                 costoUnitario: this.form.costoUnitario,
                 costoParcial: this.parseNumber(this.costoParcialStr),
-                ItemGeneralId: this.form.ItemGeneralId ? parseInt(this.form.ItemGeneralId) : null
+                ItemGeneralId: this.form.ItemGeneralId ? parseInt(this.form.ItemGeneralId) : null,
+                origen: this.form.origen,
+                fecha_incorporacion: this.form.origen === 'adicional' ? (this.form.fecha_incorporacion || null) : null,
             };
 
             try {
@@ -374,7 +397,7 @@ export default {
                 // reset
                 this.editMode = false;
                 this.editId = null;
-                this.form = { numeroItem: '', descripcionItem: '', unidadMedida: '', cantidad: 0, costoUnitario: 0, costoParcial: 0, ItemGeneralId: null };
+                this.form = { numeroItem: '', descripcionItem: '', unidadMedida: '', cantidad: 0, costoUnitario: 0, costoParcial: 0, ItemGeneralId: null, origen: 'original', fecha_incorporacion: null };
                 this.costoParcialStr = '';
                 this.costoParcialManual = false;
 
@@ -456,6 +479,19 @@ export default {
     color: #f0c040;
     font-size: 1.1em;
     font-weight: bold;
+}
+
+.badge-adicional {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 7px;
+    background: #f59e0b;
+    color: #1c1917;
+    border-radius: 999px;
+    font-size: 0.72em;
+    font-weight: 700;
+    vertical-align: middle;
+    letter-spacing: 0.03em;
 }
 
 /* Ajustes responsivos */

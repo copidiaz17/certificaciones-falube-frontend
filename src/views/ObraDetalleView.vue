@@ -186,6 +186,7 @@ export default {
       curvaPlanAcum: [],
       curvaCertAcum: [],
       curvaAvanceAcum: [],
+      planificacionesCurvas: [],
     };
   },
 
@@ -285,6 +286,7 @@ export default {
       this.certNumerosPorPeriodo = [];
       this.financiero = [];
       this.financieroMontos = [];
+      this.planificacionesCurvas = [];
 
       if (this.curvaChartInstance) {
         this.curvaChartInstance.destroy();
@@ -321,7 +323,8 @@ export default {
             this.curvaPlanAcum,
             this.curvaCertAcum,
             this.curvaAvanceAcum,
-            this.financiero
+            this.financiero,
+            this.planificacionesCurvas
           );
         }
       }
@@ -341,7 +344,7 @@ export default {
       const obraId = this.route.params.obraId;
       const res = await api.get(`/obras/${obraId}/curva-avance`);
 
-      const { labels, planificado, certificado, avance, financiero, financieroMontos, certNumerosPorPeriodo } = res.data;
+      const { labels, planificado, certificado, avance, financiero, financieroMontos, certNumerosPorPeriodo, planificacionesCurvas } = res.data;
 
       if (!labels || labels.length === 0) return;
 
@@ -352,6 +355,7 @@ export default {
       this.curvaPlanAcum = planificado || [];
       this.curvaCertAcum = certificado || [];
       this.curvaAvanceAcum = avance || [];
+      this.planificacionesCurvas = planificacionesCurvas || [];
       // renderCurva se llama desde fetchData() después de que el DOM se actualiza
     },
 
@@ -375,7 +379,7 @@ export default {
       return s.map((v, i) => (i <= lastIdx ? v : null));
     },
 
-    renderCurva(labels, planificado, certificado, avance, financiero) {
+    renderCurva(labels, planificado, certificado, avance, financiero, planificacionesCurvas) {
       if (!this.$refs.curvaChart) return;
       if (this.curvaChartInstance) this.curvaChartInstance.destroy();
 
@@ -384,16 +388,52 @@ export default {
       const realPlot = this.cutAfterLastChange(avance || []);
       const financieroPlot = this.cutAfterLastChange(financiero || []);
 
-      const dsPlan = {
-        label: "Planificado",
-        data: (planificado || []).map((v) => v == null ? null : Number(v)),
-        borderColor: "rgba(56, 189, 248, 0.25)",
-        borderWidth: 16,
-        tension: 0.28,
-        pointRadius: 0,
-        fill: false,
-        order: 10,
-      };
+      // Build planning curve datasets — one per planificacion serie
+      const planDatasets = [];
+      if (planificacionesCurvas && planificacionesCurvas.length > 0) {
+        planificacionesCurvas.forEach((curva, idx) => {
+          const isVigente = curva.esVigente;
+          const isReplanteo = curva.tipo === 'replanteo';
+          let borderColor, borderWidth, borderDash, label;
+
+          if (!isReplanteo) {
+            label = planificacionesCurvas.length > 1 ? "Planificado (Original)" : "Planificado";
+            borderColor = isVigente ? "rgba(56, 189, 248, 0.9)" : "rgba(56, 189, 248, 0.18)";
+            borderWidth = isVigente ? 3 : 14;
+            borderDash = isVigente ? undefined : [8, 6];
+          } else {
+            const motivoSuffix = curva.motivo === 'adicional_item' ? ' c/adicionales' : '';
+            label = isVigente ? `Replanteo${motivoSuffix} (vigente)` : `Replanteo${motivoSuffix}`;
+            borderColor = isVigente ? "rgba(251, 146, 60, 1)" : "rgba(251, 146, 60, 0.35)";
+            borderWidth = isVigente ? 3 : 2;
+            borderDash = isVigente ? undefined : [6, 4];
+          }
+
+          planDatasets.push({
+            label,
+            data: (curva.datos || []).map((v) => v == null ? null : Number(v)),
+            borderColor,
+            borderWidth,
+            borderDash,
+            tension: 0.28,
+            pointRadius: 0,
+            fill: false,
+            order: 10 + idx,
+          });
+        });
+      } else {
+        // Fallback for obras without replanteo data
+        planDatasets.push({
+          label: "Planificado",
+          data: (planificado || []).map((v) => v == null ? null : Number(v)),
+          borderColor: "rgba(56, 189, 248, 0.25)",
+          borderWidth: 16,
+          tension: 0.28,
+          pointRadius: 0,
+          fill: false,
+          order: 10,
+        });
+      }
 
       const dsCert = {
         label: "Certificado",
@@ -423,7 +463,7 @@ export default {
         order: 1,
       };
 
-      const datasets = [dsPlan, dsCert, dsReal];
+      const datasets = [...planDatasets, dsCert, dsReal];
 
       if (this.esAdmin && financiero && financiero.length) {
         datasets.push({
