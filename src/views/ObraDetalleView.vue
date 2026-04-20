@@ -21,8 +21,8 @@
         Ver Pliego Completo
       </button>
       <button v-if="authStore.canModify" @click="goToProyeccionObra"
-        class="btn-primary btn-success btn-lg action-btn">
-        Proyección de Obra
+        class="btn-primary btn-lg action-btn" style="background:#7c3aed">
+        📅 Planificación / Replanteo
       </button>
     </div>
 
