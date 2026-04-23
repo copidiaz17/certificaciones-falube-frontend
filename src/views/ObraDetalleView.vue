@@ -450,11 +450,11 @@ export default {
       const dsCert = {
         label: "Certificado",
         data: certPlot,
-        borderColor: "rgba(0, 220, 90, 1)",
+        borderColor: "rgba(250, 204, 21, 1)",
         borderWidth: 8,
         tension: 0.25,
         pointRadius: 5,
-        pointBackgroundColor: "rgba(0, 220, 90, 1)",
+        pointBackgroundColor: "rgba(250, 204, 21, 1)",
         pointBorderColor: "#ffffff",
         pointBorderWidth: 2,
         fill: false,
