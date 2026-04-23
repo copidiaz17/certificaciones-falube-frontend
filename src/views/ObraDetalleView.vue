@@ -389,24 +389,35 @@ export default {
       const financieroPlot = this.cutAfterLastChange(financiero || []);
 
       // Build planning curve datasets — one per planificacion serie
+      // Plan/replanteo curves go BEHIND (low order) and are THICKER than execution curves.
+      // When a replanteo exists the original plan is attenuated (faded + dashed).
       const planDatasets = [];
+      const hayReplanteo = planificacionesCurvas && planificacionesCurvas.some(c => c.tipo === 'replanteo');
+
       if (planificacionesCurvas && planificacionesCurvas.length > 0) {
         planificacionesCurvas.forEach((curva, idx) => {
-          const isVigente = curva.esVigente;
           const isReplanteo = curva.tipo === 'replanteo';
+          const isVigente = curva.esVigente;
           let borderColor, borderWidth, borderDash, label;
 
           if (!isReplanteo) {
-            label = planificacionesCurvas.length > 1 ? "Planificado (Original)" : "Planificado";
-            borderColor = isVigente ? "rgba(56, 189, 248, 0.9)" : "rgba(56, 189, 248, 0.18)";
-            borderWidth = isVigente ? 3 : 14;
-            borderDash = isVigente ? undefined : [8, 6];
+            label = hayReplanteo ? "Planificado (Original)" : "Planificado";
+            // When a replanteo exists → attenuate the original plan
+            if (hayReplanteo) {
+              borderColor = "rgba(56, 189, 248, 0.20)";
+              borderWidth = 4;
+              borderDash = [8, 6];
+            } else {
+              borderColor = "rgba(56, 189, 248, 0.85)";
+              borderWidth = 6;
+              borderDash = undefined;
+            }
           } else {
             const motivoSuffix = curva.motivo === 'adicional_item' ? ' c/adicionales' : '';
             label = isVigente ? `Replanteo${motivoSuffix} (vigente)` : `Replanteo${motivoSuffix}`;
-            borderColor = isVigente ? "rgba(251, 146, 60, 1)" : "rgba(251, 146, 60, 0.35)";
-            borderWidth = isVigente ? 3 : 2;
-            borderDash = isVigente ? undefined : [6, 4];
+            borderColor = isVigente ? "rgba(251, 146, 60, 0.90)" : "rgba(251, 146, 60, 0.25)";
+            borderWidth = isVigente ? 6 : 3;
+            borderDash = isVigente ? undefined : [6, 5];
           }
 
           planDatasets.push({
@@ -418,35 +429,36 @@ export default {
             tension: 0.28,
             pointRadius: 0,
             fill: false,
-            order: 10 + idx,
+            order: 1 + idx,   // Low order = drawn first = behind all execution curves
           });
         });
       } else {
-        // Fallback for obras without replanteo data
+        // Fallback: obra without replanteo data
         planDatasets.push({
           label: "Planificado",
           data: (planificado || []).map((v) => v == null ? null : Number(v)),
-          borderColor: "rgba(56, 189, 248, 0.25)",
-          borderWidth: 16,
+          borderColor: "rgba(56, 189, 248, 0.85)",
+          borderWidth: 6,
           tension: 0.28,
           pointRadius: 0,
           fill: false,
-          order: 10,
+          order: 1,
         });
       }
 
+      // Execution curves — drawn on top (higher order), thinner lines
       const dsCert = {
         label: "Certificado",
         data: certPlot,
         borderColor: "rgba(34, 197, 94, 1)",
-        borderWidth: 8,
+        borderWidth: 3,
         tension: 0.25,
         pointRadius: 5,
         pointBackgroundColor: "rgba(34, 197, 94, 1)",
         pointBorderColor: "#ffffff",
         pointBorderWidth: 2,
         fill: false,
-        order: 5,
+        order: 20,
       };
 
       const dsReal = {
@@ -460,7 +472,7 @@ export default {
         pointBorderColor: "#ffffff",
         pointBorderWidth: 2,
         fill: false,
-        order: 1,
+        order: 25,
       };
 
       const datasets = [...planDatasets, dsCert, dsReal];
@@ -470,12 +482,12 @@ export default {
           label: "Avance financiero",
           data: financieroPlot,
           borderColor: "rgba(168, 85, 247, 0.95)",
-          borderWidth: 5,
+          borderWidth: 2,
           tension: 0.25,
           pointRadius: 4,
           borderDash: [10, 4],
           fill: false,
-          order: 7,
+          order: 18,
         });
       }
 
