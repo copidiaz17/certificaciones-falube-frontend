@@ -405,18 +405,18 @@ export default {
             // When a replanteo exists → attenuate the original plan
             if (hayReplanteo) {
               borderColor = "rgba(56, 189, 248, 0.20)";
-              borderWidth = 4;
+              borderWidth = 8;
               borderDash = [8, 6];
             } else {
               borderColor = "rgba(56, 189, 248, 0.85)";
-              borderWidth = 6;
+              borderWidth = 8;
               borderDash = undefined;
             }
           } else {
             const motivoSuffix = curva.motivo === 'adicional_item' ? ' c/adicionales' : '';
             label = isVigente ? `Replanteo${motivoSuffix} (vigente)` : `Replanteo${motivoSuffix}`;
             borderColor = isVigente ? "rgba(251, 146, 60, 0.90)" : "rgba(251, 146, 60, 0.25)";
-            borderWidth = isVigente ? 6 : 3;
+            borderWidth = isVigente ? 8 : 4;
             borderDash = isVigente ? undefined : [6, 5];
           }
 
@@ -438,7 +438,7 @@ export default {
           label: "Planificado",
           data: (planificado || []).map((v) => v == null ? null : Number(v)),
           borderColor: "rgba(56, 189, 248, 0.85)",
-          borderWidth: 6,
+          borderWidth: 8,
           tension: 0.28,
           pointRadius: 0,
           fill: false,
