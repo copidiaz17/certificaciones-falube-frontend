@@ -405,18 +405,18 @@ export default {
             // When a replanteo exists → attenuate the original plan
             if (hayReplanteo) {
               borderColor = "rgba(56, 189, 248, 0.20)";
-              borderWidth = 8;
+              borderWidth = 10;
               borderDash = [8, 6];
             } else {
               borderColor = "rgba(56, 189, 248, 0.85)";
-              borderWidth = 8;
+              borderWidth = 10;
               borderDash = undefined;
             }
           } else {
             const motivoSuffix = curva.motivo === 'adicional_item' ? ' c/adicionales' : '';
             label = isVigente ? `Replanteo${motivoSuffix} (vigente)` : `Replanteo${motivoSuffix}`;
             borderColor = isVigente ? "rgba(251, 146, 60, 0.90)" : "rgba(251, 146, 60, 0.25)";
-            borderWidth = isVigente ? 8 : 4;
+            borderWidth = isVigente ? 10 : 5;
             borderDash = isVigente ? undefined : [6, 5];
           }
 
@@ -438,7 +438,7 @@ export default {
           label: "Planificado",
           data: (planificado || []).map((v) => v == null ? null : Number(v)),
           borderColor: "rgba(56, 189, 248, 0.85)",
-          borderWidth: 8,
+          borderWidth: 10,
           tension: 0.28,
           pointRadius: 0,
           fill: false,
@@ -451,7 +451,7 @@ export default {
         label: "Certificado",
         data: certPlot,
         borderColor: "rgba(34, 197, 94, 1)",
-        borderWidth: 3,
+        borderWidth: 6,
         tension: 0.25,
         pointRadius: 5,
         pointBackgroundColor: "rgba(34, 197, 94, 1)",
