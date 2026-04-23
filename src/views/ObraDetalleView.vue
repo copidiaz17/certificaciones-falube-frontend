@@ -429,7 +429,7 @@ export default {
             tension: 0.28,
             pointRadius: 0,
             fill: false,
-            order: 1 + idx,   // Low order = drawn first = behind all execution curves
+            order: 50 + idx,  // High order = drawn first = behind all execution curves
           });
         });
       } else {
@@ -442,7 +442,7 @@ export default {
           tension: 0.28,
           pointRadius: 0,
           fill: false,
-          order: 1,
+          order: 50,
         });
       }
 
@@ -458,7 +458,7 @@ export default {
         pointBorderColor: "#ffffff",
         pointBorderWidth: 2,
         fill: false,
-        order: 20,
+        order: 2,
       };
 
       const dsReal = {
@@ -472,7 +472,7 @@ export default {
         pointBorderColor: "#ffffff",
         pointBorderWidth: 2,
         fill: false,
-        order: 25,
+        order: 1,
       };
 
       const datasets = [...planDatasets, dsCert, dsReal];
@@ -487,7 +487,7 @@ export default {
           pointRadius: 4,
           borderDash: [10, 4],
           fill: false,
-          order: 18,
+          order: 3,
         });
       }
 
