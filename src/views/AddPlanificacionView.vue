@@ -70,6 +70,75 @@
       </div>
     </div>
 
+    <!-- PANEL IMPACTO PRESUPUESTARIO (solo adicional_item / ambos) -->
+    <div v-if="mostrarPanelImpacto" class="panel-impacto">
+      <div class="impacto-titulo">📊 Impacto presupuestario del replanteo</div>
+      <div class="impacto-grid">
+        <div class="impacto-bloque">
+          <span class="impacto-label">Presupuesto actual</span>
+          <span class="impacto-valor">${{ formatMonto(presupuestoActualTotal) }}</span>
+        </div>
+        <div class="impacto-bloque" :class="totalAdicionalPendiente > 0 ? 'bloque-plus' : 'bloque-neutro'">
+          <span class="impacto-label">Ítems adicionales</span>
+          <span class="impacto-valor">{{ totalAdicionalPendiente > 0 ? '+$' + formatMonto(totalAdicionalPendiente) : '—' }}</span>
+        </div>
+        <div class="impacto-bloque bloque-nuevo">
+          <span class="impacto-label">Nuevo presupuesto</span>
+          <span class="impacto-valor">${{ formatMonto(presupuestoNuevo) }}</span>
+          <span v-if="totalAdicionalPendiente > 0" class="badge-incremento">+{{ porcentajeCambioPresupuesto }}%</span>
+        </div>
+      </div>
+      <div v-if="totalAdicionalPendiente > 0" class="impacto-aviso">
+        ⚠️ Al incorporar ítems adicionales, el % certificado y el % de avance acumulados hasta hoy
+        disminuirán proporcionalmente al recalcularse sobre el nuevo presupuesto.
+        El monto en pesos ya cobrado <strong>no cambia</strong>.
+      </div>
+
+      <!-- Tabla de incidencias por ítem -->
+      <div v-if="items.length > 0" class="incidencia-tabla-wrap">
+        <table class="incidencia-tabla">
+          <thead>
+            <tr>
+              <th>Ítem</th>
+              <th>Descripción</th>
+              <th>Costo parcial</th>
+              <th>Incidencia actual</th>
+              <th>Incidencia nueva</th>
+              <th>Δ Incidencia</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in items" :key="item.pliego_item_id" :class="item.esNuevo ? 'inc-fila-nueva' : ''">
+              <td>{{ item.numeroItem }}</td>
+              <td>{{ item.descripcion }} <span v-if="item.esNuevo" class="badge-nuevo">nuevo</span></td>
+              <td class="td-monto">${{ formatMonto(item.costoParcial || 0) }}</td>
+              <td class="td-inc-actual">
+                {{ item.incidenciaActual != null ? item.incidenciaActual.toFixed(2) + '%' : '—' }}
+              </td>
+              <td class="td-inc-nueva">
+                {{ presupuestoNuevo > 0 ? (((item.costoParcial || 0) / presupuestoNuevo) * 100).toFixed(2) + '%' : '—' }}
+              </td>
+              <td :class="item.incidenciaActual != null && presupuestoNuevo > 0 ? 'td-delta-neg' : 'td-delta-neutro'">
+                <template v-if="item.incidenciaActual != null && presupuestoNuevo > 0">
+                  {{ (((item.costoParcial || 0) / presupuestoNuevo) * 100 - item.incidenciaActual).toFixed(2) }}%
+                </template>
+                <template v-else>—</template>
+              </td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="2" class="tf-label">TOTAL</td>
+              <td class="td-monto tf-label">${{ formatMonto(presupuestoNuevo) }}</td>
+              <td class="td-inc-actual tf-label">100%</td>
+              <td class="td-inc-nueva tf-label">100%</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
     <!-- GRILLA DE DISTRIBUCIÓN -->
     <div class="grilla-titulo">Distribución del porcentaje planificado</div>
     <table class="data-table">
@@ -201,12 +270,30 @@ export default {
       guardando: false,
       historial: [],
       cargandoHistorial: false,
+      presupuestoActualTotal: 0,   // total del pliego antes del replanteo
     };
   },
 
   computed: {
     totalPlanificado() {
       return this.items.reduce((sum, i) => sum + (Number(i.porcentaje_planificado) || 0), 0);
+    },
+
+    // ── Computed de impacto presupuestario (solo adicional_item) ──────────────
+    totalAdicionalPendiente() {
+      return this.itemsAdicionales.reduce(
+        (sum, it) => sum + Number(it.cantidad || 0) * Number(it.costoUnitario || 0), 0
+      );
+    },
+    presupuestoNuevo() {
+      return this.presupuestoActualTotal + this.totalAdicionalPendiente;
+    },
+    porcentajeCambioPresupuesto() {
+      if (!this.presupuestoActualTotal) return 0;
+      return ((this.presupuestoNuevo / this.presupuestoActualTotal - 1) * 100).toFixed(1);
+    },
+    mostrarPanelImpacto() {
+      return this.esReplanteo && (this.motivo === 'adicional_item' || this.motivo === 'ambos');
     },
   },
 
@@ -248,6 +335,10 @@ export default {
       return `${Number(value || 0).toFixed(2)}%`;
     },
 
+    formatMonto(value) {
+      return Number(value || 0).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    },
+
     motivoLabel(m) {
       return { tiempo: 'Extensión de plazo', adicional_item: 'Adicional de ítem', ambos: 'Extensión + Adicional' }[m] || (m || '—');
     },
@@ -274,6 +365,9 @@ export default {
         descripcion: this.nuevoItem.descripcionItem,
         unidad: this.nuevoItem.unidadMedida,
         cantidad: this.nuevoItem.cantidad,
+        costoParcial: this.nuevoItem.cantidad * this.nuevoItem.costoUnitario,
+        avanceAcumulado: 0,
+        incidenciaActual: null,   // ítem nuevo, sin incidencia en total anterior
         porcentaje_planificado: 0,
         porcentaje_disponible: 100,
         esNuevo: true,
@@ -305,13 +399,16 @@ export default {
           const res = await api.get(`/obras/${this.obraId}/items-disponible-replanteo`);
           const { items, ultimoAvancePeriodoHasta } = res.data;
 
+          this.presupuestoActualTotal = res.data.presupuestoTotal || 0;
           this.items = items.map(it => ({
-            pliego_item_id: it.id,
-            numeroItem:     it.numeroItem,
-            descripcion:    it.descripcionItem,
-            unidad:         it.unidadMedida,
-            cantidad:       it.cantidad,
-            avanceAcumulado:      it.avanceAcumulado,
+            pliego_item_id:        it.id,
+            numeroItem:            it.numeroItem,
+            descripcion:           it.descripcionItem,
+            unidad:                it.unidadMedida,
+            cantidad:              it.cantidad,
+            costoParcial:          it.costoParcial,
+            avanceAcumulado:       it.avanceAcumulado,
+            incidenciaActual:      it.incidenciaActual,
             porcentaje_disponible: it.porcentajeDisponible,
             porcentaje_planificado: 0,
             esNuevo: false,
@@ -621,4 +718,117 @@ export default {
 .historial-empty { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 24px; color: #6b7280; font-size: 0.9rem; }
 .historial-empty span { font-size: 2rem; }
 .historial-empty p { margin: 0; }
+
+/* Panel impacto presupuestario */
+.panel-impacto {
+  background: #0a0f1e;
+  border: 1px solid rgba(251,146,60,0.4);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+.impacto-titulo {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #fb923c;
+  margin-bottom: 14px;
+}
+.impacto-grid {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.impacto-bloque {
+  flex: 1;
+  min-width: 140px;
+  background: #111827;
+  border: 1px solid #374151;
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.bloque-plus {
+  border-color: rgba(251,146,60,0.5);
+  background: rgba(251,146,60,0.06);
+}
+.bloque-neutro {
+  border-color: #374151;
+}
+.bloque-nuevo {
+  border-color: rgba(74,222,128,0.4);
+  background: rgba(74,222,128,0.05);
+}
+.impacto-label {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.impacto-valor {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e5e7eb;
+}
+.badge-incremento {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(74,222,128,0.15);
+  color: #4ade80;
+  font-size: 0.78rem;
+  font-weight: 700;
+  margin-top: 2px;
+  width: fit-content;
+}
+.impacto-aviso {
+  background: rgba(245,158,11,0.08);
+  border: 1px solid rgba(245,158,11,0.3);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  color: #fbbf24;
+  margin-bottom: 14px;
+}
+
+/* Tabla de incidencias */
+.incidencia-tabla-wrap { overflow-x: auto; }
+.incidencia-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  min-width: 520px;
+}
+.incidencia-tabla th,
+.incidencia-tabla td {
+  border: 1px solid #1f2937;
+  padding: 6px 10px;
+  text-align: center;
+}
+.incidencia-tabla thead th {
+  background: #1e293b;
+  color: #94a3b8;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.incidencia-tabla tbody tr:nth-child(odd) { background: #111827; }
+.incidencia-tabla tbody tr:nth-child(even) { background: #0b1120; }
+.incidencia-tabla tfoot td {
+  background: #1e293b;
+  font-weight: 700;
+  color: #e5e7eb;
+}
+.inc-fila-nueva {
+  background: rgba(251,146,60,0.05) !important;
+}
+.td-monto { color: #e5e7eb; font-family: monospace; text-align: right; }
+.td-inc-actual { color: #94a3b8; }
+.td-inc-nueva { color: #60a5fa; font-weight: 600; }
+.td-delta-neg { color: #f87171; font-weight: 700; }
+.td-delta-neutro { color: #6b7280; }
 </style>
