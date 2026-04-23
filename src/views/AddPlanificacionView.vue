@@ -79,6 +79,7 @@
           <th>Descripción</th>
           <th>Unidad</th>
           <th>Cantidad</th>
+          <th v-if="esReplanteo" class="th-avance">% Avance ejecutado</th>
           <th>% Disponible</th>
           <th>% Planificado</th>
         </tr>
@@ -92,6 +93,7 @@
           </td>
           <td>{{ item.unidad }}</td>
           <td>{{ mostrar(item.cantidad) }}</td>
+          <td v-if="esReplanteo" class="td-avance">{{ item.avanceAcumulado != null ? item.avanceAcumulado + '%' : '—' }}</td>
           <td>{{ item.porcentaje_disponible }}%</td>
           <td>
             <input
@@ -285,18 +287,8 @@ export default {
       try {
         const res = await api.get(`/obras/${this.obraId}/planificaciones`);
         this.historial = res.data || [];
-        // Si ya hay planificaciones y no estamos en modo edición, es un replanteo
         if (!this.editMode) {
           this.esReplanteo = this.historial.length > 0;
-          if (this.esReplanteo) {
-            // Autorellenar fecha desde = día siguiente al fin de la última planif
-            const ultima = this.historial[this.historial.length - 1];
-            if (ultima?.fecha_hasta) {
-              const fin = new Date(ultima.fecha_hasta);
-              fin.setDate(fin.getDate() + 1);
-              this.periodo.desde = fin.toISOString().split('T')[0];
-            }
-          }
         }
       } catch (e) {
         console.error("Error cargando historial:", e);
@@ -308,17 +300,43 @@ export default {
 
     async cargarPliego() {
       try {
-        const res = await api.get(`/obras/${this.obraId}/items-disponible-planificacion`);
-        this.items = res.data.map(it => ({
-          pliego_item_id: it.id,
-          numeroItem: it.numeroItem,
-          descripcion: it.descripcionItem,
-          unidad: it.unidadMedida,
-          cantidad: it.cantidad,
-          porcentaje_planificado: 0,
-          porcentaje_disponible: it.porcentajeDisponible,
-          esNuevo: false,
-        }));
+        if (this.esReplanteo) {
+          // Replanteo: disponible = 100% - avance de obra real acumulado
+          const res = await api.get(`/obras/${this.obraId}/items-disponible-replanteo`);
+          const { items, ultimoAvancePeriodoHasta } = res.data;
+
+          this.items = items.map(it => ({
+            pliego_item_id: it.id,
+            numeroItem:     it.numeroItem,
+            descripcion:    it.descripcionItem,
+            unidad:         it.unidadMedida,
+            cantidad:       it.cantidad,
+            avanceAcumulado:      it.avanceAcumulado,
+            porcentaje_disponible: it.porcentajeDisponible,
+            porcentaje_planificado: 0,
+            esNuevo: false,
+          }));
+
+          // Fecha desde = día siguiente al fin del último avance de obra
+          if (ultimoAvancePeriodoHasta && !this.periodo.desde) {
+            const d = new Date(ultimoAvancePeriodoHasta);
+            d.setDate(d.getDate() + 1);
+            this.periodo.desde = d.toISOString().split('T')[0];
+          }
+        } else {
+          // Planificación original: disponible = 100% - lo ya planificado
+          const res = await api.get(`/obras/${this.obraId}/items-disponible-planificacion`);
+          this.items = res.data.map(it => ({
+            pliego_item_id: it.id,
+            numeroItem:     it.numeroItem,
+            descripcion:    it.descripcionItem,
+            unidad:         it.unidadMedida,
+            cantidad:       it.cantidad,
+            porcentaje_planificado: 0,
+            porcentaje_disponible:  it.porcentajeDisponible,
+            esNuevo: false,
+          }));
+        }
       } catch (err) {
         console.error(err);
         this.error = "Error al cargar ítems disponibles para planificar";
@@ -498,14 +516,16 @@ export default {
     },
   },
 
-  mounted() {
+  async mounted() {
     if (this.planifId) {
       this.editMode = true;
       this.cargarPlanificacionExistente();
+      this.cargarHistorial();
     } else {
-      this.cargarPliego();
+      // Primero historial (determina esReplanteo), luego pliego según tipo
+      await this.cargarHistorial();
+      await this.cargarPliego();
     }
-    this.cargarHistorial();
   },
 };
 </script>
@@ -562,6 +582,8 @@ export default {
 .fila-nueva { background: rgba(251,146,60,0.06) !important; }
 .badge-nuevo { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: rgba(251,146,60,0.2); color: #fb923c; font-size: 0.7rem; font-weight: 700; vertical-align: middle; }
 .input-porcentaje { width: 90px; }
+.th-avance { color: #fb923c; }
+.td-avance { color: #fb923c; font-weight: 600; text-align: center; }
 .sin-items { text-align: center; font-style: italic; color: #666; }
 .tf-label { text-align: right; color: #94a3b8; font-size: 0.85rem; font-weight: 600; padding: 8px 12px; }
 .tf-total { text-align: center; font-weight: 700; color: #4ade80; padding: 8px 12px; }
