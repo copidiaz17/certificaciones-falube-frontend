@@ -126,8 +126,14 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="cert in certsHistorial" :key="cert.id">
-                <td>{{ cert.numero_certificado }}</td>
+              <!-- Las anuladas siguen en la lista, marcadas: un certificado
+                   que desaparece del historial es uno que nadie puede
+                   explicar después. -->
+              <tr v-for="cert in certsHistorial" :key="cert.id" :class="{ 'row-anulada': cert.anulada }">
+                <td>
+                  {{ cert.numero_certificado }}
+                  <span v-if="cert.anulada" class="cert-anulada">ANULADA</span>
+                </td>
                 <td>{{ formatPeriodo(cert) }}</td>
                 <td>{{ formatDate(cert.fecha_certificacion) }}</td>
                 <td>{{ formatPercent(cert.avance_mensual) }}</td>
@@ -852,5 +858,19 @@ export default {
   .titulo-obra { font-size: 1.4rem; }
   .chart-wrap { height: 280px; }
   .panel { padding: 12px; }
+}
+
+/* Una certificación anulada se ve apagada, pero se ve. */
+.row-anulada { opacity: 0.55; }
+.cert-anulada {
+  margin-left: 8px;
+  background: #b91c1c;
+  color: #fef2f2;
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  vertical-align: middle;
 }
 </style>
