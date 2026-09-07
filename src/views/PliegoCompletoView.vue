@@ -42,6 +42,8 @@
           <td colspan="6"><strong>Costo Total</strong></td>
           <td class="num-col">{{ formatNumber(costoTotal) }}</td>
         </tr>
+        <!-- El desglose se oculta en las obras marcadas como "solo costo total" -->
+        <template v-if="!soloCostoTotal">
         <tr class="resumen-row">
           <td colspan="6">Gastos Generales (15%)</td>
           <td class="num-col">{{ formatNumber(gastosGenerales) }}</td>
@@ -70,6 +72,7 @@
           <td colspan="6"><strong>PRECIO TOTAL DE OBRA</strong></td>
           <td class="num-col">{{ formatNumber(totalObra) }}</td>
         </tr>
+        </template>
       </tbody>
     </table>
 
@@ -101,6 +104,16 @@ export default {
   },
 
   computed: {
+    // Las obras contratadas por un precio total muestran SOLO el total, sin
+    // el desglose de gastos generales, beneficios, IVA e ingresos brutos.
+    //
+    // Antes era una lista de números de obra escrita acá —`[2]`— con un TODO
+    // pidiendo esto. Ahora es un campo de la obra: se marca desde la pantalla,
+    // sirve para cualquier obra nueva, y el mismo código funciona en las dos
+    // empresas, donde el número 2 es una obra distinta.
+    soloCostoTotal() {
+      return Boolean(this.obra?.solo_costo_total);
+    },
     costoTotal() {
       return this.items.reduce((sum, i) => sum + Number(i.costoParcial), 0);
     },
