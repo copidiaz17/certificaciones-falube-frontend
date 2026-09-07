@@ -116,8 +116,8 @@ const routes = [
         meta: { requiresAuth: true, requiresModification: true },
       },
 
-      // Lo ejecutado por encima del pliego. Solo lectura para todos:
-      // convertir en ítem lo controla la propia pantalla según el rol.
+      // Lo ejecutado por encima del pliego. Solo lectura para todos: convertir
+      // en ítem lo controla la propia pantalla según el rol.
       {
         path: "obra/:obraId/excedentes",
         name: "ExcedentesObra",
@@ -135,14 +135,6 @@ const routes = [
 },
 
       {
-        path: "obra/:obraId/certificaciones/:certId/editar",
-        name: "EditarCertificacion",
-        component: EditCertificacionView,
-        props: true,
-        meta: { requiresAuth: true, requiresModification: true },
-      },
-
-      {
         path: "obra/:obraId/planificacion/:planifId/editar",
         name: "EditarPlanificacion",
         component: AddPlanificacionView,
@@ -154,6 +146,14 @@ const routes = [
         path: "obra/:obraId/avance/:avanceId/editar",
         name: "EditarAvance",
         component: AddAvanceObraView,
+        props: true,
+        meta: { requiresAuth: true, requiresModification: true },
+      },
+
+      {
+        path: "obra/:obraId/certificaciones/:certId/editar",
+        name: "EditarCertificacion",
+        component: EditCertificacionView,
         props: true,
         meta: { requiresAuth: true, requiresModification: true },
       },

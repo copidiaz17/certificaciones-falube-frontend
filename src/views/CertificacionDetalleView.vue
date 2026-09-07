@@ -6,6 +6,9 @@
     </h2>
 
     <p v-if="certificado.anulada" class="aviso-anulada">
+      <template v-if="certificado.anulada_por">
+        Anulada por <strong>{{ certificado.anulada_por.nombre }}</strong>.
+      </template>
       No se computa en el acumulado ni en el tope del 100%, y no se puede
       editar. No se borró: se puede reactivar.
     </p>
@@ -194,6 +197,7 @@ export default {
         totalProyecto: 0,
         porcentajeFinanciero: 0,
         anulada: false,
+        anulada_por: null,
       },
       // Mientras se anula o se reactiva, para que no se apriete dos veces.
       trabajando: false,

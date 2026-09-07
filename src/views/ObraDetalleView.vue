@@ -25,7 +25,7 @@
         Ver Pliego Completo
       </button>
       <button v-if="authStore.canModify" @click="goToProyeccionObra"
-        class="btn-primary btn-lg action-btn" style="background:#7c3aed">
+        class="btn-primary btn-success btn-lg action-btn">
         📅 Planificación / Replanteo
       </button>
     </div>
@@ -130,14 +130,8 @@
               </tr>
             </thead>
             <tbody>
-              <!-- Las anuladas siguen en la lista, marcadas: un certificado
-                   que desaparece del historial es uno que nadie puede
-                   explicar después. -->
               <tr v-for="cert in certsHistorial" :key="cert.id" :class="{ 'row-anulada': cert.anulada }">
-                <td>
-                  {{ cert.numero_certificado }}
-                  <span v-if="cert.anulada" class="cert-anulada">ANULADA</span>
-                </td>
+                <td>{{ cert.numero_certificado }}<span v-if="cert.anulada" class="cert-anulada">ANULADA</span></td>
                 <td>{{ formatPeriodo(cert) }}</td>
                 <td>{{ formatDate(cert.fecha_certificacion) }}</td>
                 <td>{{ formatPercent(cert.avance_mensual) }}</td>
@@ -192,21 +186,22 @@ export default {
       certsHistorial: [],
       financiero: [],
       financieroMontos: [],
+      planificacionesCurvas: [],   // series de planificación: original y replanteo
       curvaLabels: [],
       curvaPlanAcum: [],
       curvaCertAcum: [],
       curvaAvanceAcum: [],
-      planificacionesCurvas: [],
     };
   },
 
   computed: {
+    // Usa el getter del store, que acepta "admin" y "administrador".
+    // Antes comparaba acá contra "administrador" exacto y dejaba afuera a
+    // admin@mdf.com, que tiene el rol guardado como "admin". Eso bloqueaba
+    // el detalle de la certificación Y la curva de avance financiero, que
+    // también dependía de esAdmin.
     esAdmin() {
-      return (
-        this.authStore.user &&
-        this.authStore.user.rol &&
-        this.authStore.user.rol.toLowerCase().trim() === "administrador"
-      );
+      return this.authStore.esAdmin;
     },
 
     resumenCurva() {
@@ -215,8 +210,7 @@ export default {
       const avA = this.curvaAvanceAcum || [];
       if (!labels.length) return [];
 
-      // Rellenar hacia adelante los null del plan (períodos extra post-planificación)
-      // El gráfico corta la línea con null; la tabla necesita el último valor conocido.
+      // Fill-forward: los períodos extra tienen null en plan; propagamos el último valor conocido
       const planRaw = this.curvaPlanAcum || [];
       const planA = [];
       let lastKnownPlan = 0;
@@ -361,11 +355,11 @@ export default {
       this.certNumerosPorPeriodo = certNumerosPorPeriodo || [];
       this.financiero = financiero || [];
       this.financieroMontos = financieroMontos || [];
+      this.planificacionesCurvas = planificacionesCurvas || [];
       this.curvaLabels = labels || [];
       this.curvaPlanAcum = planificado || [];
       this.curvaCertAcum = certificado || [];
       this.curvaAvanceAcum = avance || [];
-      this.planificacionesCurvas = planificacionesCurvas || [];
       // renderCurva se llama desde fetchData() después de que el DOM se actualiza
     },
 
@@ -398,77 +392,70 @@ export default {
       const realPlot = this.cutAfterLastChange(avance || []);
       const financieroPlot = this.cutAfterLastChange(financiero || []);
 
-      // Build planning curve datasets — one per planificacion serie
-      // Plan/replanteo curves go BEHIND (low order) and are THICKER than execution curves.
-      // When a replanteo exists the original plan is attenuated (faded + dashed).
+      // Curvas de planificación: una por serie. Cuando hay replanteo se
+      // dibujan dos — la original atenuada y punteada, como testigo de lo que
+      // se había prometido, y el replanteo vigente en naranja por encima.
+      // Van detrás de las curvas de ejecución (order alto) y más gruesas.
       const planDatasets = [];
-      const hayReplanteo = planificacionesCurvas && planificacionesCurvas.some(c => c.tipo === 'replanteo');
+      const hayReplanteo = planificacionesCurvas && planificacionesCurvas.some((c) => c.tipo === "replanteo");
 
       if (planificacionesCurvas && planificacionesCurvas.length > 0) {
-        planificacionesCurvas.forEach((curva, idx) => {
-          const isReplanteo = curva.tipo === 'replanteo';
-          const isVigente = curva.esVigente;
+        planificacionesCurvas.forEach((curva) => {
+          const esReplanteo = curva.tipo === "replanteo";
+          const esVigente = curva.esVigente;
           let borderColor, borderWidth, borderDash, label;
 
-          if (!isReplanteo) {
+          if (!esReplanteo) {
             label = hayReplanteo ? "Planificado (Original)" : "Planificado";
-            // When a replanteo exists → attenuate the original plan
-            if (hayReplanteo) {
-              borderColor = "rgba(56, 189, 248, 0.20)";
-              borderWidth = 12;
-              borderDash = [8, 6];
-            } else {
-              borderColor = "rgba(56, 189, 248, 0.85)";
-              borderWidth = 12;
-              borderDash = undefined;
-            }
+            borderColor = hayReplanteo ? "rgba(56, 189, 248, 0.20)" : "rgba(56, 189, 248, 0.25)";
+            borderWidth = 16;
+            borderDash = hayReplanteo ? [8, 6] : undefined;
           } else {
-            const motivoSuffix = curva.motivo === 'adicional_item' ? ' c/adicionales' : '';
-            label = isVigente ? `Replanteo${motivoSuffix} (vigente)` : `Replanteo${motivoSuffix}`;
-            borderColor = isVigente ? "rgba(251, 146, 60, 0.90)" : "rgba(251, 146, 60, 0.25)";
-            borderWidth = isVigente ? 12 : 6;
-            borderDash = isVigente ? undefined : [6, 5];
+            const sufijo = curva.motivo === "adicional_item" ? " c/adicionales" : "";
+            label = esVigente ? `Replanteo${sufijo} (vigente)` : `Replanteo${sufijo}`;
+            borderColor = esVigente ? "rgba(251, 146, 60, 0.90)" : "rgba(251, 146, 60, 0.25)";
+            borderWidth = esVigente ? 12 : 6;
+            borderDash = esVigente ? undefined : [8, 6];
           }
 
           planDatasets.push({
             label,
-            data: (curva.datos || []).map((v) => v == null ? null : Number(v)),
+            data: (curva.datos || []).map((v) => (v == null ? null : Number(v))),
             borderColor,
             borderWidth,
             borderDash,
             tension: 0.28,
             pointRadius: 0,
             fill: false,
-            order: 50 + idx,  // High order = drawn first = behind all execution curves
+            order: 10,
           });
         });
       } else {
-        // Fallback: obra without replanteo data
+        // Compatibilidad: si el backend todavía no manda las series.
         planDatasets.push({
           label: "Planificado",
-          data: (planificado || []).map((v) => v == null ? null : Number(v)),
-          borderColor: "rgba(56, 189, 248, 0.85)",
-          borderWidth: 12,
+          data: (planificado || []).map((v) => (v == null ? null : Number(v))),
+          borderColor: "rgba(56, 189, 248, 0.25)",
+          borderWidth: 16,
           tension: 0.28,
           pointRadius: 0,
           fill: false,
-          order: 50,
+          order: 10,
         });
       }
 
-      // Execution curves — drawn on top (higher order), thinner lines
       const dsCert = {
         label: "Certificado",
         data: certPlot,
-        borderColor: "rgba(250, 204, 21, 1)",
+        borderColor: "rgba(34, 197, 94, 1)",
         borderWidth: 8,
         tension: 0.25,
         pointRadius: 5,
-        pointBackgroundColor: "rgba(250, 204, 21, 1)",
+        pointBackgroundColor: "rgba(34, 197, 94, 1)",
         pointBorderColor: "#ffffff",
         pointBorderWidth: 2,
         fill: false,
-        order: 2,
+        order: 5,
       };
 
       const dsReal = {
@@ -492,12 +479,12 @@ export default {
           label: "Avance financiero",
           data: financieroPlot,
           borderColor: "rgba(168, 85, 247, 0.95)",
-          borderWidth: 2,
+          borderWidth: 5,
           tension: 0.25,
           pointRadius: 4,
           borderDash: [10, 4],
           fill: false,
-          order: 3,
+          order: 7,
         });
       }
 
@@ -579,12 +566,12 @@ export default {
       this.$router.push({ name: "AddCertificacion", params: { obraId: this.route.params.obraId } });
     },
 
-    goToExcedentes() {
-      this.$router.push({ name: "ExcedentesObra", params: { obraId: this.route.params.obraId } });
-    },
-
     goToAddAvanceObra() {
       this.$router.push({ name: "AddAvanceObra", params: { obraId: this.route.params.obraId } });
+    },
+
+    goToExcedentes() {
+      this.$router.push({ name: "ExcedentesObra", params: { obraId: this.route.params.obraId } });
     },
 
     goToProyeccionObra() {
@@ -800,6 +787,19 @@ export default {
   font-size: 0.9rem;
 }
 
+.row-anulada { opacity: 0.55; }
+.cert-anulada {
+  display: inline-block;
+  margin-left: 8px;
+  background: #7f1d1d;
+  color: #fecaca;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  vertical-align: middle;
+}
 .tabla-certificaciones th,
 .tabla-certificaciones td {
   border: 1px solid #4b5563;
@@ -866,19 +866,5 @@ export default {
   .titulo-obra { font-size: 1.4rem; }
   .chart-wrap { height: 280px; }
   .panel { padding: 12px; }
-}
-
-/* Una certificación anulada se ve apagada, pero se ve. */
-.row-anulada { opacity: 0.55; }
-.cert-anulada {
-  margin-left: 8px;
-  background: #b91c1c;
-  color: #fef2f2;
-  border-radius: 999px;
-  padding: 1px 8px;
-  font-size: 0.62rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  vertical-align: middle;
 }
 </style>

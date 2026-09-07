@@ -1,6 +1,6 @@
 <template>
   <div class="add-cert-view">
-    <h2 class="titulo">Planificación de Obra</h2>
+    <h2 class="titulo">{{ editMode ? "Editar Planificación" : "Planificación de Obra" }}</h2>
 
     <div v-if="mensaje" class="mensaje-exito">{{ mensaje }}</div>
     <div v-if="error" class="mensaje-error">{{ error }}</div>

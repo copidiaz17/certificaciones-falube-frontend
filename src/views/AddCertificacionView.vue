@@ -75,53 +75,61 @@
 
       <!-- DESGLOSE FINANCIERO COMO PIE DE TABLA -->
       <tfoot>
+        <!-- Esta obra en particular: mostrar SOLO el costo total -->
+        <tr v-if="soloCostoTotal" class="row-total-final">
+          <td colspan="7" class="text-right">COSTO TOTAL</td>
+          <td>{{ mostrar(totales.subtotal) }}</td>
+        </tr>
+
+        <!-- Resto de obras: desglose financiero completo -->
+        <template v-else>
         <tr class="row-subtotal">
-          <td colspan="6" class="text-right">Subtotal ítems</td>
+          <td colspan="7" class="text-right">Subtotal ítems</td>
           <td>{{ mostrar(totales.subtotal) }}</td>
         </tr>
 
         <!-- MUNICIPALIDAD (municipalidad_sgo) -->
         <template v-if="esMunicipalidad">
           <tr>
-            <td colspan="6" class="text-right">
+            <td colspan="7" class="text-right">
               Devolución anticipo financiero (40% del subtotal)
             </td>
             <td>- {{ mostrar(totales.deduccionAnticipo) }}</td>
           </tr>
 
           <tr>
-            <td colspan="6" class="text-right">Subtotal 1</td>
+            <td colspan="7" class="text-right">Subtotal 1</td>
             <td>{{ mostrar(totales.subtotal1) }}</td>
           </tr>
 
           <tr>
-            <td colspan="6" class="text-right">
+            <td colspan="7" class="text-right">
               Fondo de reparo (5% del subtotal)
             </td>
             <td>- {{ mostrar(totales.fondoReparo) }}</td>
           </tr>
 
           <tr>
-            <td colspan="6" class="text-right">
+            <td colspan="7" class="text-right">
               Tasa de inspección (3% del subtotal)
             </td>
             <td>- {{ mostrar(totales.tasaInspeccion) }}</td>
           </tr>
 
           <tr>
-            <td colspan="6" class="text-right">Subtotal 2</td>
+            <td colspan="7" class="text-right">Subtotal 2</td>
             <td>{{ mostrar(totales.subtotal2) }}</td>
           </tr>
 
           <tr>
-            <td colspan="6" class="text-right">
+            <td colspan="7" class="text-right">
               Sustitución fondo de reparo mediante póliza
             </td>
             <td>+ {{ mostrar(totales.sustitucionFondoReparo) }}</td>
           </tr>
 
           <tr class="row-total-final">
-            <td colspan="6" class="text-right">TOTAL NETO CERTIFICADO</td>
+            <td colspan="7" class="text-right">TOTAL NETO CERTIFICADO</td>
             <td>{{ mostrar(totales.totalNeto) }}</td>
           </tr>
         </template>
@@ -129,45 +137,46 @@
         <!-- ARQUITECTURA (direccion_arquitectura) -->
         <template v-else-if="esArquitectura">
           <tr>
-            <td colspan="6" class="text-right">
+            <td colspan="7" class="text-right">
               Gastos generales (15% del subtotal)
             </td>
             <td>+ {{ mostrar(totales.gastosGenerales) }}</td>
           </tr>
 
           <tr>
-            <td colspan="6" class="text-right">Subtotal 1</td>
+            <td colspan="7" class="text-right">Subtotal 1</td>
             <td>{{ mostrar(totales.subtotal1) }}</td>
           </tr>
 
           <tr>
-            <td colspan="6" class="text-right">
+            <td colspan="7" class="text-right">
               Beneficios (10% del subtotal 1)
             </td>
             <td>+ {{ mostrar(totales.beneficios) }}</td>
           </tr>
 
           <tr>
-            <td colspan="6" class="text-right">Subtotal 2</td>
+            <td colspan="7" class="text-right">Subtotal 2</td>
             <td>{{ mostrar(totales.subtotal2) }}</td>
           </tr>
 
           <tr>
-            <td colspan="6" class="text-right">IVA 21% (sobre subtotal 2)</td>
+            <td colspan="7" class="text-right">IVA 21% (sobre subtotal 2)</td>
             <td>- {{ mostrar(totales.iva) }}</td>
           </tr>
 
           <tr>
-            <td colspan="6" class="text-right">
+            <td colspan="7" class="text-right">
               Ingresos brutos 2,5% (sobre subtotal 2)
             </td>
             <td>- {{ mostrar(totales.ingresosBrutos) }}</td>
           </tr>
 
           <tr class="row-total-final">
-            <td colspan="6" class="text-right">TOTAL NETO CERTIFICADO</td>
+            <td colspan="7" class="text-right">TOTAL NETO CERTIFICADO</td>
             <td>{{ mostrar(totales.totalNeto) }}</td>
           </tr>
+        </template>
         </template>
       </tfoot>
     </table>
@@ -175,7 +184,11 @@
     <!-- RESUMEN FINAL DEL CERTIFICADO -->
     <div class="resumen-certificado">
       <h3>Resumen del certificado</h3>
-      <p>
+      <p v-if="soloCostoTotal">
+        <strong>Costo total del certificado:</strong>
+        {{ mostrar(totales.subtotal) }}
+      </p>
+      <p v-else>
         <strong>Total neto del certificado:</strong>
         {{ mostrar(totales.totalNeto) }}
       </p>
@@ -256,6 +269,16 @@ export default {
 
     esArquitectura() {
       return this.tipoReparticion === "arquitectura";
+    },
+
+    // ⚠️ ACÁ SIEMPRE VA EL DESGLOSE COMPLETO.
+    // Antes esto devolvía `Number(this.obraId) === 2` y ocultaba las
+    // deducciones en el Jardín Municipal. Estaba en la pantalla equivocada:
+    // lo de "solo costo total" se pidió para la carga de ÍTEMS de la obra
+    // (CargarPliegoView / PliegoCompletoView), no para la del certificado.
+    // Un certificado sin desglose no sirve: es lo que se presenta a cobrar.
+    soloCostoTotal() {
+      return false;
     },
   },
 
@@ -397,22 +420,6 @@ export default {
     },
 
     async guardarCertificacion() {
-      // Validar campos requeridos
-      if (!this.cert.numero_certificado || !this.cert.fecha_certificacion || !this.cert.periodo_desde || !this.cert.periodo_hasta) {
-        this.toast.warning("Completá N° de certificado, Fecha de Emisión, Periodo Desde y Periodo Hasta.");
-        return;
-      }
-
-      // Validar que los años sean razonables (evita typos como 20225)
-      const fechasValidas = [this.cert.fecha_certificacion, this.cert.periodo_desde, this.cert.periodo_hasta].every(f => {
-        const year = parseInt((f || "").split("-")[0]);
-        return year >= 2000 && year <= 2099;
-      });
-      if (!fechasValidas) {
-        this.toast.warning("Las fechas tienen un año inválido. Verificá que el año sea correcto (ej: 2025).");
-        return;
-      }
-
       try {
         const payload = {
           numero_certificado: this.cert.numero_certificado,
@@ -487,10 +494,10 @@ export default {
   flex-wrap: wrap;
   gap: 20px;
   margin-bottom: 25px;
-  background: #121212;
+  background: #16163A;
   padding: 15px;
   border-radius: 8px;
-  border: 1px solid #d0d6dd;
+  border: 1px solid #2D2D5E;
 }
 
 .campo {
@@ -533,11 +540,19 @@ export default {
   margin-bottom: 18px;
 }
 
+/* ⚠️ FONDO Y TEXTO EXPLÍCITOS, LOS DOS.
+   assets/base.css hace que el color de texto de la app dependa del tema del
+   sistema operativo (prefers-color-scheme). Esta vista usa fondos oscuros
+   fijos, así que si solo se define el fondo, en tema claro queda texto negro
+   sobre negro, y si solo se define el texto, queda gris claro sobre blanco.
+   Definiendo los dos, la tabla se ve igual con cualquier tema. */
 .data-table th,
 .data-table td {
   border: 1px solid #666;
   padding: 6px;
   text-align: center;
+  background: #1f2937;
+  color: #e5e7eb;
 }
 
 .data-table th {
@@ -558,15 +573,29 @@ export default {
   text-align: right;
 }
 
-.row-subtotal td {
+/* Todo el pie de tabla —el desglose financiero— con fondo propio y texto claro */
+.data-table tfoot td {
+  background: #1f2937;
+  color: #e5e7eb;
+}
+
+/* Los descuentos, en rojo suave, para distinguirlos de las sumas */
+.data-table tfoot tr:not(.row-subtotal):not(.row-total-final):not(.row-subtotal-parcial) td:last-child {
+  color: #fca5a5;
+}
+
+.row-subtotal td,
+.row-subtotal-parcial td {
   font-weight: 600;
   background: #111827;
+  color: #f9fafb;
 }
 
 .row-total-final td {
   font-weight: 700;
   background: #047857;
   color: #fff;
+  font-size: 1.05rem;
 }
 
 /* -------- RESUMEN -------- */
@@ -574,15 +603,43 @@ export default {
 .resumen-certificado {
   margin-top: 10px;
   margin-bottom: 20px;
-  padding: 12px 16px;
+  padding: 14px 18px;
   border-radius: 8px;
-  background: #020617;
+  /* Antes: #020617 sin color de texto → letras negras sobre fondo casi negro */
+  background: #111827;
   border: 1px solid #4b5563;
+  color: #e5e7eb;
 }
 
 .resumen-certificado h3 {
   margin-top: 0;
+  margin-bottom: 10px;
+  color: #f9fafb;
+}
+
+.resumen-certificado p {
+  margin: 6px 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 14.5px;
+}
+
+.resumen-certificado strong {
+  color: #93c5fd;
+  font-weight: 600;
+}
+
+/* El total final, destacado */
+.resumen-certificado p:first-of-type {
+  font-size: 17px;
+  padding-bottom: 8px;
   margin-bottom: 8px;
+  border-bottom: 1px solid #374151;
+}
+
+.resumen-certificado p:first-of-type strong {
+  color: #6ee7b7;
 }
 
 /* -------- BOTÓN -------- */
